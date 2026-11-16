@@ -122,6 +122,35 @@ table.ledger td.zero{color:#c3c0b8}
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* ---- 印刷（A4・色別） ---- */
+#printArea{display:none}
+@media print{
+  body{background:#fff}
+  body > *:not(#printArea){display:none!important}
+  #printArea{display:block;font-size:10.5px;color:#000}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+#printArea h1{font-size:16px;margin:0 0 2px}
+#printArea .pmeta{font-size:10px;color:#444;margin-bottom:8px}
+#printArea .psum{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+#printArea .psum span{padding:3px 10px;border-radius:4px;font-weight:700}
+#printArea section{margin-bottom:14px}
+#printArea section.brk{break-before:page}
+#printArea section:first-of-type{break-before:auto}
+#printArea h2{font-size:13px;margin:0 0 4px;padding:5px 8px;border-radius:4px}
+#printArea table{width:100%;border-collapse:collapse;table-layout:fixed}
+#printArea th{font-size:9.5px;font-weight:700;text-align:left;padding:4px 5px;border-bottom:1.5px solid #333}
+#printArea td{padding:4px 5px;border-bottom:1px solid #bbb;vertical-align:top;word-break:break-all}
+#printArea td.n,#printArea th.n{text-align:right}
+#printArea tr{break-inside:avoid}
+#printArea thead{display:table-header-group}
+#printArea tbody.pg{break-inside:avoid}
+#printArea tr.ph td{font-weight:700;font-size:11px;padding:6px 5px;border-top:2px solid #333;border-bottom:1px solid #333}
+#printArea .chk{width:14px;height:14px;border:1.5px solid #333;display:inline-block}
+.popt{display:flex;flex-direction:column;gap:8px;font-size:13px;margin-top:8px}
+.popt label{display:flex;gap:8px;align-items:center}
+.popt input[type=checkbox],.popt input[type=radio]{width:auto;margin:0}
+
 @media (max-width:860px){
   .kpis{grid-template-columns:1fr 1fr}
   header{gap:12px;padding:0 12px;overflow-x:auto}
@@ -169,7 +198,7 @@ table.ledger td.zero{color:#c3c0b8}
           <option value="recent">直近30日の受注が多い順</option>
           <option value="name">商品名順</option>
         </select>
-        <span id="pLegend"></span><span class="count" id="pCount"></span>
+        <span id="pLegend"></span><button class="btn" id="pPrint">印刷（A4）</button><span class="count" id="pCount"></span>
       </div>
       <div class="tablewrap"><table class="ledger" id="pTable"></table>
         <div class="empty hidden" id="pEmpty">該当する商品はありません</div></div>
@@ -186,7 +215,7 @@ table.ledger td.zero{color:#c3c0b8}
           <option value="">未発送すべて</option>
           <option value="snz">対応メモで停止中</option>
         </select>
-        <span id="oLegend"></span><span class="count" id="oCount"></span>
+        <span id="oLegend"></span><button class="btn" id="oPrint">印刷（A4・色別）</button><span class="count" id="oCount"></span>
       </div>
       <div class="tablewrap"><table class="ledger">
         <thead><tr><th>受注日</th><th class="num">経過</th><th>商品名</th><th class="num">数量</th><th>医院名</th><th>対応状況</th><th>納期目安</th><th>対応メモ</th><th></th></tr></thead>
@@ -230,6 +259,7 @@ table.ledger td.zero{color:#c3c0b8}
 
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
 <div id="modal2" class="hidden"><div class="box" id="modal2Box"></div></div>
+<div id="printArea"></div>
 
 <script>
 // =========================================================
@@ -552,6 +582,96 @@ function drawOpen() {
   $("#oEmpty").classList.toggle("hidden", list.length > 0);
   $("#oBody").innerHTML = list.map(r => openLineRow(r, true)).join("");
   bindFollowButtons($("#oBody"));
+}
+
+// ---------- 印刷（A4・色別） ----------
+const PRINT_COLORS = { w2: "--w2", w3: "--w3", w4: "--w4", w5: "--w5" };
+$("#pPrint") && ($("#pPrint").onclick = () => $("#oPrint").onclick());
+$("#oPrint").onclick = () => {
+  const c = (t) => ROWS.filter(r => isLate(r) && tierOf(ageOf(r)) === t);
+  $("#modal2Box").innerHTML = `
+    <h3>印刷（A4）</h3>
+    <div class="meta">受注から2週間以上たった未発送を印刷します。行は経過週数の色で塗り分けます。</div>
+    <div class="f"><label>まとめ方</label>
+      <div class="popt">
+        <label><input type="radio" name="pBy" value="prod" checked>商品別（商品ごとに、未発送の注文をまとめる）</label>
+        <label><input type="radio" name="pBy" value="tier">色別（経過週数ごとに分ける）</label>
+      </div></div>
+    <div class="f"><label>印刷する色</label>
+      <div class="popt">${["w5", "w4", "w3", "w2"].map(t => `<label><input type="checkbox" class="pt" value="${t}" checked>
+        <span class="tag ${t}">${TIER_LABEL[t]}</span> ${c(t).filter(r => !isSnoozed(r)).length}件</label>`).join("")}</div></div>
+    <div class="f"><label>そのほか</label>
+      <div class="popt">
+        <label><input type="checkbox" id="pSnz">対応メモで止めた行も入れる</label>
+        <label><input type="checkbox" id="pBreak" checked>色別のとき、色ごとに新しいページにする</label>
+        <label><input type="checkbox" id="pLand" checked>A4横向き（外すとA4縦向き）</label>
+      </div></div>
+    <div class="actions"><button class="btn" id="pCancel">閉じる</button><button class="btn primary" id="pGo">印刷する</button></div>`;
+  $("#modal2").classList.remove("hidden");
+  $("#pCancel").onclick = () => $("#modal2").classList.add("hidden");
+  $("#pGo").onclick = () => {
+    const tiers = [...document.querySelectorAll(".pt:checked")].map(x => x.value);
+    if (!tiers.length) { alert("印刷する色を1つ以上選んでください"); return; }
+    const by = document.querySelector("input[name=pBy]:checked").value;
+    (by === "prod" ? printByProduct : printTiers)(tiers, $("#pSnz").checked, $("#pBreak").checked, $("#pLand").checked);
+    $("#modal2").classList.add("hidden");
+  };
+};
+function setPage(landscape) {
+  let st = document.getElementById("pageStyle");
+  if (!st) { st = document.createElement("style"); st.id = "pageStyle"; document.head.appendChild(st); }
+  st.textContent = `@page{size:A4 ${landscape ? "landscape" : "portrait"};margin:10mm}`;
+}
+function printByProduct(tiers, withSnz, _pageBreak, landscape) {
+  const rows = ROWS.filter(r => isLate(r) && tiers.includes(tierOf(ageOf(r))) && (withSnz || !isSnoozed(r)));
+  const map = new Map();
+  rows.forEach(r => { const k = prodKey(r); const g = map.get(k) || { name: r.product_name, code: r.product_code, rows: [] }; g.rows.push(r); map.set(k, g); });
+  const groups = [...map.values()].map(g => {
+    g.rows.sort((a, b) => (a.order_date || "").localeCompare(b.order_date || ""));
+    g.oldest = ageOf(g.rows[0]); g.qty = g.rows.reduce((a, r) => a + pieces(r), 0); return g;
+  }).sort((a, b) => b.rows.length - a.rows.length || b.oldest - a.oldest);
+  const col = (t, k) => `var(${PRINT_COLORS[t]}-${k})`;
+  const cnt = (t) => rows.filter(r => tierOf(ageOf(r)) === t).length;
+  const now = new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+  $("#printArea").innerHTML = `
+    <h1>受注台帳　未発送アラーム一覧（商品別）</h1>
+    <div class="pmeta">印刷日時 ${esc(now)}　／　受注から2週間以上たった未発送 ${rows.length}件・${groups.length}商品${withSnz ? "（対応メモで止めた行を含む）" : "（対応メモで止めた行を除く）"}　／　商品は未発送の件数が多い順</div>
+    <div class="psum">${["w5", "w4", "w3", "w2"].filter(t => tiers.includes(t)).map(t => `<span style="background:${col(t, "bar")};color:${t === "w2" ? "#3d2b00" : "#fff"}">${TIER_LABEL[t]} ${cnt(t)}件</span>`).join("")}</div>
+    <table><colgroup><col style="width:4%"><col style="width:10%"><col style="width:7%"><col style="width:7%"><col style="width:${landscape ? 30 : 32}%"><col style="width:12%"><col></colgroup>
+      <thead><tr><th>済</th><th>受注日</th><th class="n">経過</th><th class="n">数量</th><th>医院名</th><th>受注番号</th><th>対応メモ</th></tr></thead>
+      ${groups.map(g => { const t = tierOf(g.oldest); return `<tbody class="${g.rows.length <= 12 ? "pg" : ""}">
+        <tr class="ph" style="background:${col(t, "bg")}"><td colspan="7" style="border-left:6px solid ${col(t, "bar")}">${esc(g.name)}${g.code ? `（${esc(g.code)}）` : ""}　—　未発送 ${g.rows.length}件／数量 ${fmtN(g.qty)}／最古 ${g.oldest}日</td></tr>
+        ${g.rows.map(r => { const tt = tierOf(ageOf(r)), f = FOLLOW[keyOf(r)]; return `<tr style="background:${col(tt, "bg")}">
+          <td><span class="chk"></span></td><td>${esc(r.order_date ?? "")}</td><td class="n"><b>${ageOf(r)}日</b></td><td class="n">${fmtN(pieces(r))}</td>
+          <td>${esc(r.customer || r.dest_company || "")}</td><td>${esc(r.order_no ?? "")}</td><td>${esc(f?.note ?? "")}</td></tr>`; }).join("")}
+      </tbody>`; }).join("")}
+    </table>`;
+  setPage(landscape);
+  setTimeout(() => window.print(), 50);
+}
+function printTiers(tiers, withSnz, pageBreak, landscape) {
+  const order = ["w5", "w4", "w3", "w2"].filter(t => tiers.includes(t));
+  const groups = order.map(t => ({ t, rows: ROWS.filter(r => isLate(r) && tierOf(ageOf(r)) === t && (withSnz || !isSnoozed(r)))
+    .sort((a, b) => (a.order_date || "").localeCompare(b.order_date || "") || a.product_name.localeCompare(b.product_name, "ja")) }));
+  const total = groups.reduce((a, g) => a + g.rows.length, 0);
+  const now = new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+  const range = { w2: "14〜20日", w3: "21〜27日", w4: "28〜34日", w5: "35日以上" };
+  const col = (t, k) => `var(${PRINT_COLORS[t]}-${k})`;
+  $("#printArea").innerHTML = `
+    <h1>受注台帳　未発送アラーム一覧</h1>
+    <div class="pmeta">印刷日時 ${esc(now)}　／　受注から2週間以上たった未発送 ${total}件${withSnz ? "（対応メモで止めた行を含む）" : "（対応メモで止めた行を除く）"}</div>
+    <div class="psum">${groups.map(g => `<span style="background:${col(g.t, "bar")};color:${g.t === "w2" ? "#3d2b00" : "#fff"}">${TIER_LABEL[g.t]}（${range[g.t]}）${g.rows.length}件</span>`).join("")}</div>
+    ${groups.map((g, i) => `<section class="${pageBreak && i ? "brk" : ""}">
+      <h2 style="background:${col(g.t, "bg")};color:${col(g.t, "ink")};border-left:6px solid ${col(g.t, "bar")}">${TIER_LABEL[g.t]}（受注から${range[g.t]}）　${g.rows.length}件　／　数量 ${fmtN(g.rows.reduce((a, r) => a + pieces(r), 0))}</h2>
+      ${g.rows.length ? `<table><colgroup><col style="width:4%"><col style="width:10%"><col style="width:6%"><col style="width:${landscape ? 30 : 27}%"><col style="width:6%"><col style="width:${landscape ? 20 : 21}%"><col style="width:9%"><col></colgroup>
+        <thead><tr><th>済</th><th>受注日</th><th class="n">経過</th><th>商品名</th><th class="n">数量</th><th>医院名</th><th>受注番号</th><th>対応メモ</th></tr></thead>
+        <tbody>${g.rows.map(r => { const f = FOLLOW[keyOf(r)]; return `<tr style="background:${col(g.t, "bg")}">
+          <td><span class="chk"></span></td><td>${esc(r.order_date ?? "")}</td><td class="n"><b>${ageOf(r)}日</b></td><td>${esc(r.product_name)}</td>
+          <td class="n">${fmtN(pieces(r))}</td><td>${esc(r.customer || r.dest_company || "")}</td><td>${esc(r.order_no ?? "")}</td><td>${esc(f?.note ?? "")}</td></tr>`; }).join("")}</tbody></table>`
+        : `<div class="pmeta">該当なし</div>`}
+    </section>`).join("")}`;
+  setPage(landscape);
+  setTimeout(() => window.print(), 50);
 }
 
 // ---------- 受注明細 ----------
