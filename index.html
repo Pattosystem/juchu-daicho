@@ -190,6 +190,7 @@ table.ledger td.zero{color:#c3c0b8}
     <nav>
       <button data-tab="prod" class="on">商品別</button>
       <button data-tab="open">未発送一覧<span class="nb hidden" id="navBadge"></span></button>
+      <button data-tab="inst">出荷指示書</button>
       <button data-tab="list">受注明細</button>
       <button data-tab="import">CSV取込</button>
     </nav>
@@ -237,6 +238,26 @@ table.ledger td.zero{color:#c3c0b8}
         <thead><tr><th>受注日</th><th class="num">経過</th><th>商品名</th><th class="num">数量</th><th>医院名</th><th>対応状況</th><th>納期目安</th><th>対応メモ</th><th></th></tr></thead>
         <tbody id="oBody"></tbody></table>
         <div class="empty hidden" id="oEmpty">該当する未発送はありません</div></div>
+    </section>
+
+    <!-- 出荷指示書 -->
+    <section id="tab-inst" class="hidden">
+      <div class="toolbar">
+        <input type="search" id="iq" placeholder="医院名・商品名・受注番号・指示書No.で検索">
+        <select id="iFilter">
+          <option value="">すべて</option>
+          <option value="open">まだ発送されていないもの</option>
+          <option value="late">出荷予定日を過ぎて未発送</option>
+          <option value="done">発送済</option>
+        </select>
+        <input type="month" id="iMonth" title="発行月">
+        <span class="count" id="iCount"></span>
+      </div>
+      <div class="tablewrap"><table class="ledger">
+        <thead><tr><th>No.</th><th>発行日時</th><th>出荷予定日</th><th>医院名</th><th>商品</th><th class="num">品目</th><th>発送の状態</th><th>指示メモ</th><th>受注番号</th><th></th></tr></thead>
+        <tbody id="iBody"></tbody></table>
+        <div class="empty hidden" id="iEmpty">まだ出荷指示書はありません。未発送の行の「対応メモ」から発行できます。</div></div>
+      <div class="sub" style="margin-top:8px">発送の状態は、最後に取り込んだ受注CSVの発送状況から判定します。出荷予定日を過ぎても発送済になっていないものは赤く表示します。</div>
     </section>
 
     <!-- 受注明細 -->
@@ -415,7 +436,7 @@ async function loadAll() {
   TODAY = todayJST();
   drawAll(); loadHistory(); notifyPC();
 }
-function drawAll() { $("#pLegend").innerHTML = LEGEND; $("#oLegend").innerHTML = LEGEND; drawAlarmBar(); drawProducts(); drawOpen(); drawList(); }
+function drawAll() { $("#pLegend").innerHTML = LEGEND; $("#oLegend").innerHTML = LEGEND; drawAlarmBar(); drawProducts(); drawOpen(); drawList(); drawInst(); }
 
 // ---------- アラームの帯・パソコン通知 ----------
 function counts() {
@@ -683,6 +704,50 @@ function printInstruction(x) {
   setTimeout(() => window.print(), 50);
 }
 
+// ---------- 出荷指示書の一覧 ----------
+["iq", "iFilter", "iMonth"].forEach(id => $("#" + id).addEventListener("input", drawInst));
+function instState(x) {
+  const rows = (x.lines || []).map(l => ROWS.find(r => r.order_id === x.order_id && r.line_seq === l.line_seq)).filter(Boolean);
+  const shipped = rows.filter(r => r.ship_status === "発送済");
+  const cancel = rows.filter(r => r.order_status === "キャンセル");
+  const total = (x.lines || []).length;
+  const lastShip = shipped.map(r => r.ship_date || "").sort().pop() || "";
+  if (total && shipped.length + cancel.length >= total && shipped.length) return { k: "done", label: `発送済${lastShip ? "（" + md(lastShip) + "）" : ""}`, cls: "done" };
+  if (total && cancel.length >= total) return { k: "done", label: "キャンセル", cls: "cancel" };
+  const late = x.plan_date && x.plan_date < TODAY;
+  if (shipped.length) return { k: late ? "late" : "open", label: `一部発送（${shipped.length}/${total}）`, cls: late ? "w5" : "open" };
+  return { k: late ? "late" : "open", label: late ? `未発送（予定日から${Math.round((Date.parse(TODAY) - Date.parse(x.plan_date)) / 86400000)}日）` : "未発送", cls: late ? "w5" : "open" };
+}
+function drawInst() {
+  const q = normA($("#iq").value), fl = $("#iFilter").value, m = $("#iMonth").value;
+  const list = INST.map(x => ({ x, st: instState(x) })).filter(({ x, st }) =>
+    (!fl || (fl === "open" ? st.k !== "done" : st.k === fl)) &&
+    (!m || (x.created_at || "").startsWith(m)) &&
+    (!q || normA(["No" + x.inst_no, x.inst_no, x.customer, x.order_no, x.note, ...(x.lines || []).map(l => l.name)].join(" ")).includes(q)))
+    .sort((a, b) => b.x.inst_no - a.x.inst_no);
+  const lateN = INST.filter(x => instState(x).k === "late").length;
+  $("#iCount").textContent = `${list.length} 件${lateN ? `　／　予定日を過ぎて未発送 ${lateN} 件` : ""}`;
+  $("#iEmpty").classList.toggle("hidden", list.length > 0);
+  $("#iBody").innerHTML = list.map(({ x, st }) => {
+    const ls = x.lines || [];
+    return `<tr class="${st.k === "late" ? "w5" : ""}">
+    <td class="mono"><b>No.${x.inst_no}</b></td><td class="mono">${new Date(x.created_at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }).slice(0, -3)}</td>
+    <td class="mono age">${esc(x.plan_date ?? "")}</td><td class="ell">${esc(x.customer ?? "")}</td>
+    <td class="ell" title="${esc(ls.map(l => l.name + " " + l.qty).join(" / "))}">${esc(ls[0] ? ls[0].name : "")}${ls.length > 1 ? ` 他${ls.length - 1}件` : ""}</td>
+    <td class="num">${ls.length}</td><td><span class="tag ${st.cls}">${esc(st.label)}</span></td>
+    <td class="ell">${esc(x.note ?? "")}</td><td class="mono">${esc(x.order_no ?? "")}</td>
+    <td><button class="btn small" data-rp="${x.id}">再印刷</button> <button class="btn small danger" data-idel="${x.id}">取り消す</button></td></tr>`;
+  }).join("");
+  $("#iBody").querySelectorAll("[data-rp]").forEach(b => b.onclick = () => printInstruction(INST.find(x => x.id === b.dataset.rp)));
+  $("#iBody").querySelectorAll("[data-idel]").forEach(b => b.onclick = async () => {
+    const x = INST.find(y => y.id === b.dataset.idel); if (!x) return;
+    if (!confirm(`出荷指示書 No.${x.inst_no}（${x.customer ?? ""}）を取り消します。\n一覧から削除されます（対応メモとアラームの停止はそのまま残ります）。よろしいですか？`)) return;
+    const { error } = await sb.from("ship_instructions").delete().eq("id", x.id);
+    if (error) { alert("取り消しに失敗しました：" + error.message); return; }
+    INST = INST.filter(y => y.id !== x.id); drawAll();
+  });
+}
+
 // ---------- 未発送一覧 ----------
 ["oq", "oFilter"].forEach(id => $("#" + id).addEventListener("input", drawOpen));
 function drawOpen() {
@@ -921,7 +986,7 @@ $("#lineTest").onclick = async (e) => {
 // ---------- タブ・ログイン ----------
 function switchTab(t) {
   document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x.dataset.tab === t));
-  ["prod", "open", "list", "import"].forEach(k => $("#tab-" + k).classList.toggle("hidden", k !== t));
+  ["prod", "open", "inst", "list", "import"].forEach(k => $("#tab-" + k).classList.toggle("hidden", k !== t));
   if (t === "open") drawOpen();
 }
 document.querySelectorAll("nav button").forEach(b => b.onclick = () => switchTab(b.dataset.tab));
