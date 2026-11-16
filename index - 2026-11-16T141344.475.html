@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>受注台帳</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#f5f4f0; --panel:#ffffff; --ink:#1d2329; --sub:#5d6670; --line:#dedbd3;
+  --accent:#1f4e79; --accent-soft:#e6eef6;
+  --warn:#9a5b00; --warn-bg:#fff4e0; --err:#a42828; --err-bg:#fdeaea;
+  --ok:#2e6b3a; --ok-bg:#e7f3e9; --muted-bg:#efede8;
+  --late-bg:#fbe3e1; --late-ink:#8f1f1f;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans JP",system-ui,sans-serif;font-size:14px}
+button{font:inherit;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+.hidden{display:none!important}
+
+header{background:var(--panel);border-bottom:1px solid var(--line);padding:0 20px;display:flex;align-items:center;gap:24px;height:56px;position:sticky;top:0;z-index:10}
+header h1{font-size:16px;margin:0;letter-spacing:.04em}
+nav{display:flex;gap:4px}
+nav button{background:none;border:none;padding:8px 14px;border-radius:6px;color:var(--sub)}
+nav button.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
+nav .nb{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--err);color:#fff;font-size:11px;line-height:18px;text-align:center}
+header .who{margin-left:auto;color:var(--sub);font-size:12px;display:flex;gap:10px;align-items:center}
+main{max-width:1400px;margin:0 auto;padding:20px}
+
+.btn{border:1px solid var(--line);background:var(--panel);padding:7px 14px;border-radius:6px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
+.btn.danger{color:var(--err);border-color:#e5b9b9}
+.btn.small{padding:4px 10px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:default}
+
+#login{max-width:360px;margin:12vh auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:28px}
+#login h2{margin:0 0 18px;font-size:18px}
+#login label{display:block;font-size:12px;color:var(--sub);margin:12px 0 4px}
+#login input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px}
+#login .btn{width:100%;margin-top:18px}
+#loginErr{color:var(--err);font-size:12px;margin-top:10px}
+
+/* アラームの帯 */
+#alarmBar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 16px;border-radius:10px;margin-bottom:16px;border:1px solid}
+#alarmBar.on{background:var(--late-bg);border-color:#f0b9b3;color:var(--late-ink)}
+#alarmBar.off{background:var(--ok-bg);border-color:#bfdcc4;color:var(--ok)}
+#alarmBar .big{font-size:18px;font-weight:700}
+#alarmBar .sp{flex:1}
+
+#drop{border:2px dashed #b9c4cf;border-radius:10px;background:var(--panel);padding:36px;text-align:center;color:var(--sub);transition:.15s}
+#drop.over{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+#drop strong{display:block;font-size:16px;color:var(--ink);margin-bottom:6px}
+#drop .row{margin-top:14px;display:flex;gap:8px;justify-content:center}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-top:18px;padding:16px}
+.card h3{margin:0 0 8px;font-size:15px}
+.alert{padding:8px 10px;border-radius:6px;font-size:12px;line-height:1.5;margin-top:6px}
+.alert.info{background:var(--accent-soft);color:var(--accent)}
+.alert.warn{background:var(--warn-bg);color:var(--warn)}
+.alert.err{background:var(--err-bg);color:var(--err)}
+.alert.ok{background:var(--ok-bg);color:var(--ok)}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.toolbar input,.toolbar select{padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:#fff}
+.toolbar input[type=search]{min-width:240px}
+.toolbar .count{color:var(--sub);font-size:12px;margin-left:auto}
+.tablewrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:auto}
+table.ledger{width:100%;border-collapse:collapse;font-size:13px}
+table.ledger th{position:sticky;top:0;background:#faf9f6;text-align:left;font-weight:500;color:var(--sub);font-size:11px;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;z-index:1}
+table.ledger th.num, table.ledger td.num{text-align:right}
+table.ledger td{padding:9px 10px;border-bottom:1px solid #eeece6;white-space:nowrap}
+table.ledger tr.click:hover td{cursor:pointer;filter:brightness(.98)}
+table.ledger tr.late td{background:var(--late-bg)}
+table.ledger tr.late td.age{color:var(--late-ink);font-weight:700}
+table.ledger tr.snz td{background:var(--muted-bg)}
+table.ledger td.zero{color:#c3c0b8}
+.mono{font-family:var(--mono)}
+.num{font-family:var(--mono)}
+.ell{max-width:320px;overflow:hidden;text-overflow:ellipsis}
+.wrap{white-space:normal!important;min-width:180px}
+.sub{color:var(--sub);font-size:11px}
+.empty{padding:40px;text-align:center;color:var(--sub)}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.tag.late{background:var(--err);color:#fff}
+.tag.snz{background:var(--muted-bg);color:var(--sub);border:1px solid var(--line)}
+.tag.open{background:var(--warn-bg);color:var(--warn)}
+.tag.done{background:var(--ok-bg);color:var(--ok)}
+.tag.cancel{background:var(--muted-bg);color:var(--sub)}
+
+#modal,#modal2{position:fixed;inset:0;background:rgba(20,25,30,.45);display:flex;align-items:flex-start;justify-content:center;padding:4vh 16px;z-index:50;overflow:auto}
+#modal2{z-index:60;padding-top:12vh}
+#modal .box{background:var(--panel);border-radius:10px;width:min(1120px,100%);padding:22px}
+#modal2 .box{background:var(--panel);border-radius:10px;width:min(520px,100%);padding:22px}
+.box h3{margin:0 0 4px;font-size:17px}
+.box .meta{color:var(--sub);font-size:12px;margin-bottom:6px}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.kpi .l{font-size:11px;color:var(--sub)} .kpi .v{font-family:var(--mono);font-size:20px;margin-top:2px}
+.kpi.bad{border-color:#f0b9b3;background:var(--late-bg)} .kpi.bad .v{color:var(--late-ink)}
+.sec{border-top:1px solid var(--line);margin-top:16px;padding-top:4px}
+.sec h4{margin:12px 0 8px;font-size:13px}
+.f label{display:block;font-size:12px;color:var(--sub);margin:12px 0 4px}
+.f textarea,.f input{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px}
+.radio{display:flex;flex-direction:column;gap:8px;margin-top:6px;font-size:13px}
+.radio label{display:flex;gap:8px;align-items:center;color:var(--ink);margin:0}
+.radio input[type=date]{width:auto;padding:4px 8px}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media (max-width:860px){
+  .kpis{grid-template-columns:1fr 1fr}
+  header{gap:12px;padding:0 12px;overflow-x:auto}
+  main{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<section id="login" class="hidden">
+  <h2>受注台帳</h2>
+  <label>メールアドレス</label><input id="email" type="email" autocomplete="username">
+  <label>パスワード</label><input id="pw" type="password" autocomplete="current-password">
+  <button class="btn primary" id="loginBtn">ログイン</button>
+  <div id="loginErr"></div>
+</section>
+
+<div id="app" class="hidden">
+  <header>
+    <h1>受注台帳</h1>
+    <nav>
+      <button data-tab="prod" class="on">商品別</button>
+      <button data-tab="open">未発送一覧<span class="nb hidden" id="navBadge"></span></button>
+      <button data-tab="list">受注明細</button>
+      <button data-tab="import">CSV取込</button>
+    </nav>
+    <div class="who"><span id="userEmail"></span><button class="btn" id="logoutBtn">ログアウト</button></div>
+  </header>
+
+  <main>
+    <div id="alarmBar" class="hidden"></div>
+
+    <!-- 商品別 -->
+    <section id="tab-prod">
+      <div class="toolbar">
+        <input type="search" id="pq" placeholder="商品名・商品管理番号で検索">
+        <select id="pFilter">
+          <option value="late">2週間以上の未発送がある商品</option>
+          <option value="open">未発送がある商品</option>
+          <option value="">すべての商品</option>
+        </select>
+        <select id="pSort">
+          <option value="late">2週間以上の件数が多い順</option>
+          <option value="openQty">未発送の数量が多い順</option>
+          <option value="recent">直近30日の受注が多い順</option>
+          <option value="name">商品名順</option>
+        </select>
+        <span class="count" id="pCount"></span>
+      </div>
+      <div class="tablewrap"><table class="ledger" id="pTable"></table>
+        <div class="empty hidden" id="pEmpty">該当する商品はありません</div></div>
+      <div class="sub" style="margin-top:8px">「未発送」はキャンセルを除き、発送状況が「発送済」でない商品行です。受注日から14日以上たった未発送は赤く表示します。数量は「受注数×入数」です。</div>
+    </section>
+
+    <!-- 未発送一覧 -->
+    <section id="tab-open" class="hidden">
+      <div class="toolbar">
+        <input type="search" id="oq" placeholder="商品名・医院名・受注番号で検索">
+        <select id="oFilter">
+          <option value="alarm">2週間以上（対応待ち）</option>
+          <option value="late">2週間以上（すべて）</option>
+          <option value="">未発送すべて</option>
+          <option value="snz">対応メモで停止中</option>
+        </select>
+        <span class="count" id="oCount"></span>
+      </div>
+      <div class="tablewrap"><table class="ledger">
+        <thead><tr><th>受注日</th><th class="num">経過</th><th>商品名</th><th class="num">数量</th><th>医院名</th><th>対応状況</th><th>納期目安</th><th>対応メモ</th><th></th></tr></thead>
+        <tbody id="oBody"></tbody></table>
+        <div class="empty hidden" id="oEmpty">該当する未発送はありません</div></div>
+    </section>
+
+    <!-- 受注明細 -->
+    <section id="tab-list" class="hidden">
+      <div class="toolbar">
+        <input type="search" id="lq" placeholder="商品名・医院名・受注番号・送り状番号で検索">
+        <input type="month" id="lMonth" title="受注月">
+        <span class="count" id="lCount"></span>
+      </div>
+      <div class="tablewrap"><table class="ledger">
+        <thead><tr><th>受注日</th><th>商品名</th><th class="num">数量</th><th class="num">単価</th><th class="num">小計</th><th>医院名</th><th>対応状況</th><th>発送状況</th><th>発送日</th><th>受注番号</th></tr></thead>
+        <tbody id="lBody"></tbody></table>
+        <div class="empty hidden" id="lEmpty">該当する受注はありません</div></div>
+    </section>
+
+    <!-- CSV取込 -->
+    <section id="tab-import" class="hidden">
+      <div id="drop">
+        <strong>ここにBカートの受注CSVをドラッグ＆ドロップ</strong>
+        期間が重なっていても大丈夫です。同じ商品行（受注ID＋受注内連番）は1回だけ登録し、発送状況などを最新の内容に更新します。送料の行は取り込みません。
+        <div class="row"><button class="btn" id="pickBtn">ファイルを選ぶ</button></div>
+        <input type="file" id="fileInput" accept=".csv,text/csv" class="hidden">
+      </div>
+      <div id="preview"></div>
+      <div class="card"><h3>毎朝のLINE通知</h3>
+        <div class="sub">毎朝8時に、受注から2週間以上たった未発送（対応メモで停止中のものを除く）を、商品別にまとめてLINEに送ります。設定が終わったら、下のボタンで試せます。</div>
+        <div class="actions" style="justify-content:flex-start"><button class="btn" id="lineTest">今すぐLINEに送ってみる</button></div>
+        <div id="lineResult"></div>
+      </div>
+      <div class="card"><h3>取込履歴</h3><div class="tablewrap"><table class="ledger">
+        <thead><tr><th>取込日時</th><th>ファイル名</th><th>受注日の期間</th><th class="num">商品行</th><th class="num">新規</th><th class="num">更新</th><th></th></tr></thead>
+        <tbody id="hBody"></tbody></table></div></div>
+    </section>
+  </main>
+</div>
+
+<div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
+<div id="modal2" class="hidden"><div class="box" id="modal2Box"></div></div>
+
+<script>
+// =========================================================
+// 設定（ほかの台帳と同じSupabaseプロジェクト。使う表は受注台帳専用）
+// =========================================================
+const SUPABASE_URL = "https://dunfssyisxywxfcblgdg.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bmZzc3lpc3h5d3hmY2JsZ2RnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjYwODEsImV4cCI6MjEwODY0MjA4MX0.pWqKvj7sLg9z3rjSGKqPPl7YLi-FFKDcuoFlDCLkZck";
+// 毎朝のLINE通知の機能（Edge Function）の名前。Supabaseで付いた名前と同じにしてください
+const LINE_FN = "juchu-line-alert";
+// アラームまでの日数
+const ALARM_DAYS = 14;
+// =========================================================
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = (s, el = document) => el.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const toNum = (v) => { if (v === "" || v == null) return null; const n = Number(String(v).replace(/,/g, "")); return isNaN(n) ? null : n; };
+const fmtN = (n, d = 0) => n == null ? "" : Number(n).toLocaleString("ja-JP", { maximumFractionDigits: d });
+const normA = (s) => String(s ?? "").toUpperCase().replace(/[\s　]+/g, "");
+const todayJST = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
+const addDays = (ymd, n) => { const d = new Date(ymd + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const md = (ymd) => ymd ? `${Number(ymd.slice(5, 7))}/${Number(ymd.slice(8, 10))}` : "";
+
+// ---------- CSV ----------
+function parseCsv(text) {
+  const rows = []; let row = [], f = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; }
+      else f += c;
+    } else if (c === '"') q = true;
+    else if (c === ",") { row.push(f); f = ""; }
+    else if (c === "\n" || c === "\r") {
+      if (c === "\r" && text[i + 1] === "\n") i++;
+      row.push(f); f = ""; if (row.some(x => x !== "")) rows.push(row); row = [];
+    } else f += c;
+  }
+  if (f !== "" || row.length) { row.push(f); if (row.some(x => x !== "")) rows.push(row); }
+  return rows;
+}
+const REQUIRED = ["受注ID", "受注内連番", "商品名", "受注日時", "受注数"];
+function csvToOrders(rows) {
+  const h = rows[0].map(x => x.replace(/^﻿/, "").trim());
+  const miss = REQUIRED.filter(k => !h.includes(k));
+  if (miss.length) throw new Error("Bカートの受注CSVではないようです（見つからない列：" + miss.join("、") + "）");
+  const g = (r, k) => { const i = h.indexOf(k); return i < 0 ? "" : String(r[i] ?? "").trim(); };
+  const d = (s) => /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null;
+  const out = []; let shipping = 0, skipped = 0;
+  rows.slice(1).forEach(r => {
+    const kind = g(r, "明細区分"), name = g(r, "商品名");
+    if ((kind && kind !== "商品") || (!kind && name === "送料")) { shipping++; return; }
+    const order_id = g(r, "受注ID"), at = g(r, "受注日時");
+    if (!order_id || !name || !d(at)) { skipped++; return; }
+    out.push({
+      order_id, line_seq: g(r, "受注内連番") || "0", order_no: g(r, "受注番号") || null,
+      ordered_at: at.replace(" ", "T") + "+09:00", order_date: at.slice(0, 10),
+      order_status: g(r, "対応状況") || null, ship_status: g(r, "発送状況") || null,
+      ship_id: g(r, "Bカート発送ID") || null, ship_date: d(g(r, "発送日")), delivery_date: d(g(r, "納品日")),
+      desired_date: d(g(r, "配送希望日")), tracking: g(r, "送り状番号") || null,
+      customer: g(r, "会社名") || null, person: g(r, "担当者") || null, pref: g(r, "都道府県") || null,
+      dest_company: g(r, "配送先 会社名") || null,
+      product_code: g(r, "商品管理番号") || g(r, "品番") || null, product_name: name.replace(/\s+/g, " "),
+      qty: toNum(g(r, "受注数")), irisu: toNum(g(r, "入数")), unit: g(r, "単位") || null,
+      unit_price: toNum(g(r, "単価")), subtotal: toNum(g(r, "小計")),
+      lead_time: g(r, "納期目安(注文日～）") || null, bcart_memo: g(r, "メモ") || null, payment_method: g(r, "決済方法") || null,
+    });
+  });
+  const map = new Map(); out.forEach(x => map.set(x.order_id + "|" + x.line_seq, x));
+  return { records: [...map.values()], shipping, skipped };
+}
+
+// ---------- 判定 ----------
+let ROWS = [], FOLLOW = {}, TODAY = todayJST();
+const keyOf = (r) => r.order_id + "|" + r.line_seq;
+const pieces = (r) => (r.qty ?? 0) * (r.irisu && r.irisu > 0 ? r.irisu : 1);
+const prodKey = (r) => r.product_code ? "C:" + normA(r.product_code) : "N:" + normA(r.product_name);
+const ageOf = (r) => r.order_date ? Math.round((Date.parse(TODAY) - Date.parse(r.order_date)) / 86400000) : 0;
+const isOpen = (r) => r.ship_status !== "発送済" && r.order_status !== "キャンセル";
+const isLate = (r) => isOpen(r) && ageOf(r) >= ALARM_DAYS;
+function isSnoozed(r) {
+  const f = FOLLOW[keyOf(r)];
+  return !!f && (f.snooze_mode === "shipped" || (f.snooze_mode === "until" && f.snooze_until && f.snooze_until >= TODAY));
+}
+const isAlarm = (r) => isLate(r) && !isSnoozed(r);
+function followLabel(r) {
+  const f = FOLLOW[keyOf(r)]; if (!f) return "";
+  const stop = f.snooze_mode === "shipped" ? "発送まで停止" : (f.snooze_mode === "until" && f.snooze_until ? (f.snooze_until >= TODAY ? `${md(f.snooze_until)}まで停止` : `${md(f.snooze_until)}で停止終了`) : "");
+  return `${esc(f.note ?? "")}${stop ? ` <span class="tag snz">${stop}</span>` : ""}`;
+}
+function rowClass(r) { return isAlarm(r) ? "late" : (isLate(r) && isSnoozed(r) ? "snz" : ""); }
+function statusTag(r) {
+  if (r.order_status === "キャンセル") return `<span class="tag cancel">キャンセル</span>`;
+  if (r.ship_status === "発送済") return `<span class="tag done">発送済</span>`;
+  if (isAlarm(r)) return `<span class="tag late">${ageOf(r)}日経過</span>`;
+  if (isLate(r)) return `<span class="tag snz">対応中</span>`;
+  return `<span class="tag open">未発送</span>`;
+}
+
+// ---------- 読み込み ----------
+async function fetchAll(table, select, order) {
+  const out = []; const size = 1000;
+  for (let from = 0; ; from += size) {
+    let q = sb.from(table).select(select).range(from, from + size - 1);
+    if (order) q = q.order(order, { ascending: false });
+    const { data, error } = await q;
+    if (error) throw error;
+    out.push(...data);
+    if (data.length < size) break;
+  }
+  return out;
+}
+async function loadAll() {
+  $("#pCount").innerHTML = '<span class="spinner"></span>読み込み中…';
+  try {
+    const [rows, fol] = await Promise.all([fetchAll("bcart_orders", "*", "ordered_at"), fetchAll("order_followups", "*")]);
+    ROWS = rows; FOLLOW = {}; fol.forEach(f => FOLLOW[f.order_id + "|" + f.line_seq] = f);
+  } catch (e) { $("#pCount").textContent = ""; alert("読み込みに失敗しました：" + e.message); return; }
+  TODAY = todayJST();
+  drawAll(); loadHistory(); notifyPC();
+}
+function drawAll() { drawAlarmBar(); drawProducts(); drawOpen(); drawList(); }
+
+// ---------- アラームの帯・パソコン通知 ----------
+function counts() {
+  const late = ROWS.filter(isLate), alarm = late.filter(r => !isSnoozed(r));
+  return { late: late.length, alarm: alarm.length, snz: late.length - alarm.length };
+}
+function drawAlarmBar() {
+  const c = counts(), bar = $("#alarmBar");
+  bar.classList.remove("hidden", "on", "off");
+  const perm = ("Notification" in window) ? Notification.permission : "unsupported";
+  const pcBtn = perm === "default" ? `<button class="btn small" id="pcOn">パソコン通知をオンにする</button>` : "";
+  if (!ROWS.length) { bar.classList.add("hidden"); return; }
+  if (c.alarm) {
+    bar.classList.add("on");
+    bar.innerHTML = `<span class="big">⚠ 受注から2週間以上たった未発送：${c.alarm}件</span>
+      <span>${c.snz ? `（ほかに対応メモで停止中 ${c.snz}件）` : ""}</span><span class="sp"></span>${pcBtn}
+      <button class="btn small primary" id="goOpen">一覧を見る</button>`;
+  } else {
+    bar.classList.add("off");
+    bar.innerHTML = `<span class="big">✓ 2週間以上たった未発送（対応待ち）はありません</span>
+      <span>${c.snz ? `（対応メモで停止中 ${c.snz}件）` : ""}</span><span class="sp"></span>${pcBtn}`;
+  }
+  const nb = $("#navBadge"); nb.textContent = c.alarm; nb.classList.toggle("hidden", !c.alarm);
+  document.title = c.alarm ? `(${c.alarm}) 受注台帳` : "受注台帳";
+  if ($("#goOpen")) $("#goOpen").onclick = () => { $("#oFilter").value = "alarm"; switchTab("open"); };
+  if ($("#pcOn")) $("#pcOn").onclick = async () => { await Notification.requestPermission(); drawAlarmBar(); notifyPC(true); };
+}
+function notifyPC(force) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  const c = counts(); if (!c.alarm) return;
+  let last = null; try { last = localStorage.getItem("juchu_notified"); } catch (_) {}
+  if (!force && last === TODAY) return;
+  try {
+    const n = new Notification("受注台帳", { body: `受注から2週間以上たった未発送が ${c.alarm} 件あります`, tag: "juchu-alarm" });
+    n.onclick = () => { window.focus(); $("#oFilter").value = "alarm"; switchTab("open"); };
+    try { localStorage.setItem("juchu_notified", TODAY); } catch (_) {}
+  } catch (_) {}
+}
+// 開いたままでも、日付が変わったら判定し直す（1時間ごと）
+setInterval(() => { if (!ROWS.length) return; const t = todayJST(); if (t !== TODAY) { TODAY = t; drawAll(); notifyPC(); } }, 3600000);
+
+// ---------- 商品別 ----------
+let AGG = [];
+["pq", "pFilter", "pSort"].forEach(id => $("#" + id).addEventListener("input", drawProducts));
+function aggregate() {
+  const map = new Map(), since30 = addDays(TODAY, -29);
+  ROWS.forEach(r => {
+    const k = prodKey(r);
+    let p = map.get(k);
+    if (!p) { p = { key: k, code: r.product_code, name: r.product_name, last: "", openQty: 0, openLines: 0, lateLines: 0, alarmLines: 0, oldest: null, recentQty: 0, totalQty: 0, rows: [] }; map.set(k, p); }
+    if ((r.order_date || "") >= p.last) { p.last = r.order_date || ""; p.name = r.product_name; }
+    if (r.order_status !== "キャンセル") { p.totalQty += pieces(r); if ((r.order_date || "") >= since30) p.recentQty += pieces(r); }
+    if (isOpen(r)) {
+      p.openQty += pieces(r); p.openLines++;
+      if (!p.oldest || r.order_date < p.oldest) p.oldest = r.order_date;
+      if (isLate(r)) p.lateLines++;
+      if (isAlarm(r)) p.alarmLines++;
+    }
+    p.rows.push(r);
+  });
+  return [...map.values()];
+}
+function drawProducts() {
+  AGG = aggregate();
+  const q = normA($("#pq").value), fl = $("#pFilter").value, sort = $("#pSort").value;
+  let list = AGG.filter(p => (!q || normA(p.name + " " + (p.code || "")).includes(q)) &&
+    (fl === "late" ? p.lateLines > 0 : fl === "open" ? p.openLines > 0 : true));
+  const by = {
+    late: (a, b) => b.alarmLines - a.alarmLines || b.lateLines - a.lateLines || b.openQty - a.openQty,
+    openQty: (a, b) => b.openQty - a.openQty, recent: (a, b) => b.recentQty - a.recentQty,
+    name: (a, b) => a.name.localeCompare(b.name, "ja"),
+  };
+  list.sort(by[sort]);
+  $("#pCount").textContent = `${list.length} 商品`;
+  $("#pEmpty").classList.toggle("hidden", list.length > 0 || !ROWS.length);
+  if (!ROWS.length) { $("#pTable").innerHTML = ""; $("#pEmpty").classList.remove("hidden"); $("#pEmpty").textContent = "まだ受注データがありません。「CSV取込」タブからBカートの受注CSVを取り込んでください。"; return; }
+  $("#pEmpty").textContent = "該当する商品はありません";
+  $("#pTable").innerHTML = `
+    <thead><tr><th>商品名</th><th>商品管理番号</th><th class="num">2週間以上（対応待ち）</th><th class="num">未発送の注文</th><th class="num">未発送の数量</th>
+      <th>いちばん古い未発送</th><th class="num">直近30日の受注数</th><th class="num">受注数の合計</th><th>最終受注日</th></tr></thead>
+    <tbody>${list.map(p => {
+      const oldAge = p.oldest ? Math.round((Date.parse(TODAY) - Date.parse(p.oldest)) / 86400000) : null;
+      return `<tr class="click ${p.alarmLines ? "late" : ""}" data-k="${esc(p.key)}">
+      <td class="ell" title="${esc(p.name)}">${esc(p.name)}</td><td class="mono">${esc(p.code ?? "")}</td>
+      <td class="num">${p.alarmLines ? `<span class="tag late">${p.alarmLines}件</span>` : (p.lateLines ? `<span class="tag snz">対応中 ${p.lateLines}</span>` : `<span class="sub">0</span>`)}</td>
+      <td class="num ${p.openLines ? "" : "zero"}">${fmtN(p.openLines)}</td><td class="num ${p.openQty ? "" : "zero"}">${fmtN(p.openQty)}</td>
+      <td class="mono age">${p.oldest ? `${esc(p.oldest)}（${oldAge}日）` : ""}</td>
+      <td class="num">${fmtN(p.recentQty)}</td><td class="num">${fmtN(p.totalQty)}</td><td class="mono">${esc(p.last)}</td></tr>`;
+    }).join("")}</tbody>`;
+  document.querySelectorAll("#pTable tbody tr").forEach(tr => tr.onclick = () => openProduct(tr.dataset.k));
+}
+
+function openLineRow(r, withProduct) {
+  return `<tr class="${rowClass(r)}">
+    <td class="mono">${esc(r.order_date ?? "")}</td><td class="num age">${ageOf(r)}日</td>
+    ${withProduct ? `<td class="ell" title="${esc(r.product_name)}">${esc(r.product_name)}</td>` : ""}
+    <td class="num">${fmtN(pieces(r))}</td><td class="ell" title="${esc(r.customer ?? "")}">${esc(r.customer || r.dest_company || "")}</td>
+    <td>${esc(r.order_status ?? "")}</td><td>${esc(r.lead_time ?? "")}</td>
+    <td class="wrap">${followLabel(r)}</td>
+    <td><button class="btn small" data-fu="${esc(keyOf(r))}">対応メモ</button></td></tr>`;
+}
+let CURRENT_PRODUCT = null;
+function openProduct(key) {
+  const p = AGG.find(x => x.key === key); if (!p) return;
+  CURRENT_PRODUCT = key;
+  const open = p.rows.filter(isOpen).sort((a, b) => (a.order_date || "").localeCompare(b.order_date || ""));
+  const done = p.rows.filter(r => !isOpen(r)).sort((a, b) => (b.order_date || "").localeCompare(a.order_date || "")).slice(0, 100);
+  $("#modalBox").innerHTML = `
+    <h3>${esc(p.name)}</h3>
+    <div class="meta">${p.code ? "商品管理番号 " + esc(p.code) + "　/　" : ""}最終受注日 ${esc(p.last)}</div>
+    <div class="kpis">
+      <div class="kpi ${p.alarmLines ? "bad" : ""}"><div class="l">2週間以上（対応待ち）</div><div class="v">${p.alarmLines}件</div></div>
+      <div class="kpi"><div class="l">未発送の注文 ／ 数量</div><div class="v">${p.openLines}件 ／ ${fmtN(p.openQty)}</div></div>
+      <div class="kpi"><div class="l">直近30日の受注数</div><div class="v">${fmtN(p.recentQty)}</div></div>
+      <div class="kpi"><div class="l">受注数の合計</div><div class="v">${fmtN(p.totalQty)}</div></div>
+    </div>
+    <div class="sec"><h4>未発送（古い順）</h4>
+      ${open.length ? `<div class="tablewrap"><table class="ledger"><thead><tr><th>受注日</th><th class="num">経過</th><th class="num">数量</th><th>医院名</th><th>対応状況</th><th>納期目安</th><th>対応メモ</th><th></th></tr></thead>
+        <tbody>${open.map(r => openLineRow(r, false)).join("")}</tbody></table></div>` : `<div class="alert ok">未発送はありません</div>`}
+    </div>
+    <div class="sec"><h4>発送済み・キャンセル（新しい順・最大100件）</h4>
+      <div class="tablewrap" style="max-height:320px"><table class="ledger"><thead><tr><th>受注日</th><th class="num">数量</th><th>医院名</th><th>状態</th><th>発送日</th><th>送り状番号</th></tr></thead>
+        <tbody>${done.map(r => `<tr><td class="mono">${esc(r.order_date ?? "")}</td><td class="num">${fmtN(pieces(r))}</td><td>${esc(r.customer || r.dest_company || "")}</td>
+          <td>${statusTag(r)}</td><td class="mono">${esc(r.ship_date ?? "")}</td><td class="ell">${esc(r.tracking ?? "")}</td></tr>`).join("")}</tbody></table></div>
+    </div>
+    <div class="actions"><button class="btn" id="mClose">閉じる</button></div>`;
+  $("#modal").classList.remove("hidden");
+  $("#mClose").onclick = closeModal;
+  bindFollowButtons($("#modalBox"));
+}
+function closeModal() { $("#modal").classList.add("hidden"); CURRENT_PRODUCT = null; }
+$("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+
+// ---------- 対応メモ・アラーム停止 ----------
+function bindFollowButtons(root) { root.querySelectorAll("[data-fu]").forEach(b => b.onclick = (e) => { e.stopPropagation(); openFollow(b.dataset.fu); }); }
+function openFollow(k) {
+  const r = ROWS.find(x => keyOf(x) === k); if (!r) return;
+  const f = FOLLOW[k] || {};
+  const mode = f.snooze_mode || "";
+  const until = f.snooze_until || addDays(TODAY, 7);
+  $("#modal2Box").innerHTML = `
+    <h3>対応メモ</h3>
+    <div class="meta">${esc(r.order_date)}（${ageOf(r)}日経過）　${esc(r.customer || r.dest_company || "")}<br>${esc(r.product_name)}　${fmtN(pieces(r))}${esc(r.unit ?? "")}　／　受注番号 ${esc(r.order_no ?? "")}</div>
+    <div class="f"><label>メモ（例：入荷待ち・12月上旬予定／先方都合で保留／キャンセル漏れ）</label><textarea id="fuNote" rows="3">${esc(f.note ?? "")}</textarea></div>
+    <div class="f"><label>アラーム</label>
+      <div class="radio">
+        <label><input type="radio" name="fuMode" value="" ${!mode ? "checked" : ""}>止めない（メモだけ残す）</label>
+        <label><input type="radio" name="fuMode" value="until" ${mode === "until" ? "checked" : ""}>この日まで止める <input type="date" id="fuUntil" value="${esc(until)}"></label>
+        <label><input type="radio" name="fuMode" value="shipped" ${mode === "shipped" ? "checked" : ""}>発送されるまで止める</label>
+      </div>
+    </div>
+    <div class="actions">
+      ${FOLLOW[k] ? `<button class="btn danger" id="fuDel">メモを消す</button>` : ""}<span style="flex:1"></span>
+      <button class="btn" id="fuCancel">閉じる</button><button class="btn primary" id="fuSave">保存</button>
+    </div>`;
+  $("#modal2").classList.remove("hidden");
+  $("#fuCancel").onclick = () => $("#modal2").classList.add("hidden");
+  $("#fuUntil").onfocus = () => { document.querySelector('input[name=fuMode][value=until]').checked = true; };
+  $("#fuSave").onclick = async () => {
+    const m = document.querySelector("input[name=fuMode]:checked").value || null;
+    const rec = { order_id: r.order_id, line_seq: r.line_seq, note: $("#fuNote").value.trim() || null,
+      snooze_mode: m, snooze_until: m === "until" ? ($("#fuUntil").value || null) : null, updated_at: new Date().toISOString() };
+    if (m === "until" && !rec.snooze_until) { alert("止める日付を入れてください"); return; }
+    const { data, error } = await sb.from("order_followups").upsert(rec, { onConflict: "order_id,line_seq" }).select().single();
+    if (error) { alert("保存に失敗しました：" + error.message); return; }
+    FOLLOW[k] = data; afterFollowChange();
+  };
+  if ($("#fuDel")) $("#fuDel").onclick = async () => {
+    if (!confirm("この対応メモを消しますか？（アラームも再開します）")) return;
+    const { error } = await sb.from("order_followups").delete().eq("order_id", r.order_id).eq("line_seq", r.line_seq);
+    if (error) { alert("削除に失敗しました：" + error.message); return; }
+    delete FOLLOW[k]; afterFollowChange();
+  };
+}
+function afterFollowChange() {
+  $("#modal2").classList.add("hidden");
+  const cp = CURRENT_PRODUCT;
+  drawAll();
+  if (cp && !$("#modal").classList.contains("hidden")) openProduct(cp);
+}
+$("#modal2").addEventListener("click", e => { if (e.target.id === "modal2") $("#modal2").classList.add("hidden"); });
+
+// ---------- 未発送一覧 ----------
+["oq", "oFilter"].forEach(id => $("#" + id).addEventListener("input", drawOpen));
+function drawOpen() {
+  const q = normA($("#oq").value), fl = $("#oFilter").value;
+  const list = ROWS.filter(r => isOpen(r) &&
+    (fl === "alarm" ? isAlarm(r) : fl === "late" ? isLate(r) : fl === "snz" ? isSnoozed(r) : true) &&
+    (!q || normA([r.product_name, r.product_code, r.customer, r.dest_company, r.order_no].join(" ")).includes(q)))
+    .sort((a, b) => (a.order_date || "").localeCompare(b.order_date || ""));
+  $("#oCount").textContent = `${list.length} 件　／　数量 ${fmtN(list.reduce((a, r) => a + pieces(r), 0))}`;
+  $("#oEmpty").classList.toggle("hidden", list.length > 0);
+  $("#oBody").innerHTML = list.map(r => openLineRow(r, true)).join("");
+  bindFollowButtons($("#oBody"));
+}
+
+// ---------- 受注明細 ----------
+["lq", "lMonth"].forEach(id => $("#" + id).addEventListener("input", drawList));
+function drawList() {
+  const q = normA($("#lq").value), m = $("#lMonth").value;
+  const list = ROWS.filter(r => (!m || (r.order_date || "").startsWith(m)) &&
+    (!q || normA([r.product_name, r.product_code, r.customer, r.dest_company, r.order_no, r.tracking].join(" ")).includes(q)))
+    .sort((a, b) => (b.ordered_at || "").localeCompare(a.ordered_at || ""));
+  $("#lCount").textContent = `${list.length} 件`;
+  $("#lEmpty").classList.toggle("hidden", list.length > 0);
+  $("#lBody").innerHTML = list.slice(0, 2000).map(r => `<tr class="${rowClass(r)}">
+    <td class="mono">${esc(r.order_date ?? "")}</td><td class="ell" title="${esc(r.product_name)}">${esc(r.product_name)}</td>
+    <td class="num">${fmtN(pieces(r))}</td><td class="num">${fmtN(r.unit_price)}</td><td class="num">${fmtN(r.subtotal)}</td>
+    <td class="ell">${esc(r.customer || r.dest_company || "")}</td><td>${esc(r.order_status ?? "")}</td><td>${statusTag(r)}</td>
+    <td class="mono">${esc(r.ship_date ?? "")}</td><td class="mono">${esc(r.order_no ?? "")}</td></tr>`).join("");
+}
+
+// ---------- CSV取込 ----------
+const drop = $("#drop");
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => { if (e.dataTransfer.files[0]) readCsvFile(e.dataTransfer.files[0]); });
+$("#pickBtn").onclick = () => $("#fileInput").click();
+$("#fileInput").onchange = e => { if (e.target.files[0]) readCsvFile(e.target.files[0]); e.target.value = ""; };
+
+async function decodeFile(file) {
+  const buf = await file.arrayBuffer();
+  const utf = new TextDecoder("utf-8", { fatal: false }).decode(buf);
+  if (utf.includes("受注ID") && utf.includes("受注内連番")) return utf;
+  return new TextDecoder("shift_jis").decode(buf);
+}
+const CMP = ["order_status", "ship_status", "ship_date", "tracking", "qty"];
+let PENDING = null;
+async function readCsvFile(file) {
+  const box = $("#preview");
+  box.innerHTML = `<div class="card"><span class="spinner"></span>読み込み中…</div>`;
+  try {
+    const { records, shipping, skipped } = csvToOrders(parseCsv(await decodeFile(file)));
+    if (!records.length) throw new Error("取り込める商品行がありません");
+    const byKey = new Map(ROWS.map(r => [keyOf(r), r]));
+    const fresh = [], changed = [], same = [];
+    records.forEach(r => {
+      const old = byKey.get(keyOf(r));
+      if (!old) fresh.push(r);
+      else if (CMP.some(k => String(old[k] ?? "") !== String(r[k] ?? ""))) changed.push(r);
+      else same.push(r);
+    });
+    const shippedNow = changed.filter(r => r.ship_status === "発送済" && byKey.get(keyOf(r)).ship_status !== "発送済").length;
+    const dates = records.map(r => r.order_date).sort();
+    PENDING = { file, records, fresh: fresh.length, changed: changed.length, from: dates[0], to: dates[dates.length - 1] };
+    const sameName = HISTORY.filter(h => h.file_name === file.name);
+    const nothing = !fresh.length && !changed.length;
+    box.innerHTML = `<div class="card"><h3>${esc(file.name)}</h3>
+      ${nothing ? `<div class="alert err"><strong>このファイルの内容は、すべて登録済みで、変更もありません（${records.length} 行とも同じ）。</strong><br>取り込む必要はありません。</div>`
+        : `<div class="alert info">商品行 ${records.length} 行（受注日 ${esc(PENDING.from)} 〜 ${esc(PENDING.to)}）<br>
+          <strong>新しい受注 ${fresh.length} 行</strong>　／　<strong>内容が変わった行 ${changed.length} 行</strong>${shippedNow ? `（うち発送済になった行 ${shippedNow}）` : ""}　／　変更なし ${same.length} 行</div>`}
+      ${shipping ? `<div class="alert info">送料の行 ${shipping} 行は取り込みません。</div>` : ""}
+      ${skipped ? `<div class="alert warn">受注ID・商品名・受注日時のいずれかが空のため、${skipped} 行を読み飛ばしました。</div>` : ""}
+      ${sameName.length ? `<div class="alert warn">同じ名前のファイルを ${sameName.map(h => new Date(h.created_at).toLocaleString("ja-JP")).join("、")} に取り込んでいます。</div>` : ""}
+      <div class="actions"><button class="btn${nothing ? " primary" : ""}" id="cancelImp">やめる</button>
+        ${nothing ? "" : `<button class="btn primary" id="doImp">取り込む</button>`}</div></div>`;
+    $("#cancelImp").onclick = () => { PENDING = null; box.innerHTML = ""; };
+    if ($("#doImp")) $("#doImp").onclick = (e) => doImport(e.target, fresh, changed);
+  } catch (e) {
+    box.innerHTML = `<div class="card"><div class="alert err">読み込めませんでした：${esc(e.message)}</div></div>`;
+  }
+}
+async function doImport(btn, fresh, changed) {
+  if (!PENDING) return;
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>取り込み中…';
+  try {
+    const { data: imp, error: e1 } = await sb.from("order_imports").insert({
+      file_name: PENDING.file.name, row_count: PENDING.records.length, new_count: PENDING.fresh, changed_count: PENDING.changed,
+      date_from: PENDING.from, date_to: PENDING.to,
+    }).select().single();
+    if (e1) throw e1;
+    const now = new Date().toISOString();
+    const parts = [fresh.map(r => ({ ...r, import_id: imp.id })), changed.map(r => ({ ...r, updated_at: now }))];
+    for (const part of parts) {
+      for (let i = 0; i < part.length; i += 500) {
+        const { error } = await sb.from("bcart_orders").upsert(part.slice(i, i + 500), { onConflict: "order_id,line_seq" });
+        if (error) throw error;
+      }
+    }
+    $("#preview").innerHTML = `<div class="card"><div class="alert ok">✓ 新しい受注 ${PENDING.fresh} 行を登録し、${PENDING.changed} 行を最新の内容に更新しました</div></div>`;
+    PENDING = null;
+    await loadAll();
+  } catch (e) {
+    alert("取り込みに失敗しました：" + (e.message || e));
+    btn.disabled = false; btn.textContent = "取り込む";
+  }
+}
+let HISTORY = [];
+async function loadHistory() {
+  const { data } = await sb.from("order_imports").select("*").order("created_at", { ascending: false }).limit(50);
+  HISTORY = data || [];
+  $("#hBody").innerHTML = HISTORY.map(h => `<tr><td class="mono">${new Date(h.created_at).toLocaleString("ja-JP")}</td><td>${esc(h.file_name ?? "")}</td>
+    <td class="mono">${esc(h.date_from ?? "")} 〜 ${esc(h.date_to ?? "")}</td><td class="num">${fmtN(h.row_count)}</td><td class="num">${fmtN(h.new_count)}</td><td class="num">${fmtN(h.changed_count)}</td>
+    <td><button class="btn small" data-undo="${h.id}">取り消す</button></td></tr>`).join("")
+    || `<tr><td colspan="7" class="empty">まだ取り込みはありません</td></tr>`;
+  document.querySelectorAll("[data-undo]").forEach(b => b.onclick = () => undoImport(b.dataset.undo));
+}
+async function undoImport(id) {
+  const h = HISTORY.find(x => x.id === id); if (!h) return;
+  const n = ROWS.filter(r => r.import_id === id).length;
+  const when = new Date(h.created_at).toLocaleString("ja-JP");
+  if (!confirm(n ? `${when} の取込（${h.file_name}）を取り消します。\nこの取込で新しく登録された ${n} 行を削除します（更新した行の内容は元に戻りません）。よろしいですか？`
+                 : `${when} の取込（${h.file_name}）は、新しく登録した行がありません。\n履歴だけを削除します。よろしいですか？`)) return;
+  if (n) { const { error } = await sb.from("bcart_orders").delete().eq("import_id", id); if (error) { alert("削除に失敗しました：" + error.message); return; } }
+  const { error } = await sb.from("order_imports").delete().eq("id", id);
+  if (error) { alert("履歴の削除に失敗しました：" + error.message); return; }
+  await loadAll();
+}
+
+// ---------- LINEのテスト送信 ----------
+$("#lineTest").onclick = async (e) => {
+  const btn = e.target; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>送信中…';
+  const out = $("#lineResult");
+  try {
+    const { data, error } = await sb.functions.invoke(LINE_FN, { body: { test: true } });
+    if (error) {
+      let detail = error.message;
+      try { const b = await error.context.json(); detail = `(${error.context.status}) ` + (b.error || b.message || JSON.stringify(b)); }
+      catch (_) { try { detail = `(${error.context.status}) ` + await error.context.text(); } catch (_) {} }
+      throw new Error(detail);
+    }
+    out.innerHTML = `<div class="alert ok">✓ LINEに送りました（対象 ${fmtN(data.count)} 件）</div>`;
+  } catch (err) {
+    out.innerHTML = `<div class="alert err">送れませんでした：${esc(err.message)}</div>`;
+  } finally { btn.disabled = false; btn.textContent = "今すぐLINEに送ってみる"; }
+};
+
+// ---------- タブ・ログイン ----------
+function switchTab(t) {
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x.dataset.tab === t));
+  ["prod", "open", "list", "import"].forEach(k => $("#tab-" + k).classList.toggle("hidden", k !== t));
+  if (t === "open") drawOpen();
+}
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) showApp(session.user); else $("#login").classList.remove("hidden");
+}
+$("#loginBtn").onclick = async () => {
+  $("#loginErr").textContent = "";
+  const { data, error } = await sb.auth.signInWithPassword({ email: $("#email").value.trim(), password: $("#pw").value });
+  if (error) { $("#loginErr").textContent = "ログインできませんでした。メールアドレスとパスワードを確認してください。"; return; }
+  $("#login").classList.add("hidden"); showApp(data.user);
+};
+$("#pw").addEventListener("keydown", e => { if (e.key === "Enter") $("#loginBtn").click(); });
+$("#logoutBtn").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+function showApp(user) { $("#userEmail").textContent = user.email; $("#app").classList.remove("hidden"); loadAll(); }
+
+boot();
+</script>
+</body>
+</html>
