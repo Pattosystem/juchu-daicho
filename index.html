@@ -74,8 +74,19 @@ table.ledger th{position:sticky;top:0;background:#faf9f6;text-align:left;font-we
 table.ledger th.num, table.ledger td.num{text-align:right}
 table.ledger td{padding:9px 10px;border-bottom:1px solid #eeece6;white-space:nowrap}
 table.ledger tr.click:hover td{cursor:pointer;filter:brightness(.98)}
-table.ledger tr.late td{background:var(--late-bg)}
-table.ledger tr.late td.age{color:var(--late-ink);font-weight:700}
+/* 経過週数ごとの色：2週間台→3週間台→4週間台→5週間以上 */
+:root{ --w2-bg:#fff5d1; --w2-ink:#8a6200; --w2-bar:#e6b422;
+       --w3-bg:#ffe4c7; --w3-ink:#a14a00; --w3-bar:#ee8a2a;
+       --w4-bg:#fcd3ce; --w4-ink:#a12020; --w4-bar:#d9483b;
+       --w5-bg:#f3aaa3; --w5-ink:#6e0b0b; --w5-bar:#8f1515; }
+table.ledger tr.w2 td{background:var(--w2-bg)} table.ledger tr.w2 td:first-child{box-shadow:inset 4px 0 var(--w2-bar)} table.ledger tr.w2 td.age{color:var(--w2-ink);font-weight:700}
+table.ledger tr.w3 td{background:var(--w3-bg)} table.ledger tr.w3 td:first-child{box-shadow:inset 4px 0 var(--w3-bar)} table.ledger tr.w3 td.age{color:var(--w3-ink);font-weight:700}
+table.ledger tr.w4 td{background:var(--w4-bg)} table.ledger tr.w4 td:first-child{box-shadow:inset 4px 0 var(--w4-bar)} table.ledger tr.w4 td.age{color:var(--w4-ink);font-weight:700}
+table.ledger tr.w5 td{background:var(--w5-bg)} table.ledger tr.w5 td:first-child{box-shadow:inset 4px 0 var(--w5-bar)} table.ledger tr.w5 td.age{color:var(--w5-ink);font-weight:700}
+.tag.w2{background:var(--w2-bar);color:#3d2b00} .tag.w3{background:var(--w3-bar);color:#fff}
+.tag.w4{background:var(--w4-bar);color:#fff} .tag.w5{background:var(--w5-bar);color:#fff}
+.legend{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--sub)}
+.legend .tag{font-size:11px}
 table.ledger tr.snz td{background:var(--muted-bg)}
 table.ledger td.zero{color:#c3c0b8}
 .mono{font-family:var(--mono)}
@@ -158,11 +169,11 @@ table.ledger td.zero{color:#c3c0b8}
           <option value="recent">直近30日の受注が多い順</option>
           <option value="name">商品名順</option>
         </select>
-        <span class="count" id="pCount"></span>
+        <span id="pLegend"></span><span class="count" id="pCount"></span>
       </div>
       <div class="tablewrap"><table class="ledger" id="pTable"></table>
         <div class="empty hidden" id="pEmpty">該当する商品はありません</div></div>
-      <div class="sub" style="margin-top:8px">「未発送」はキャンセルを除き、発送状況が「発送済」でない商品行です。受注日から14日以上たった未発送は赤く表示します。数量は「受注数×入数」です。</div>
+      <div class="sub" style="margin-top:8px">「未発送」はキャンセルを除き、発送状況が「発送済」でない商品行です。受注日から14日以上たった未発送は、経過週数ごとに色を変えて表示します（行の色は、その商品でいちばん古い対応待ちに合わせています）。数量は「受注数×入数」です。</div>
     </section>
 
     <!-- 未発送一覧 -->
@@ -175,7 +186,7 @@ table.ledger td.zero{color:#c3c0b8}
           <option value="">未発送すべて</option>
           <option value="snz">対応メモで停止中</option>
         </select>
-        <span class="count" id="oCount"></span>
+        <span id="oLegend"></span><span class="count" id="oCount"></span>
       </div>
       <div class="tablewrap"><table class="ledger">
         <thead><tr><th>受注日</th><th class="num">経過</th><th>商品名</th><th class="num">数量</th><th>医院名</th><th>対応状況</th><th>納期目安</th><th>対応メモ</th><th></th></tr></thead>
@@ -304,16 +315,20 @@ function isSnoozed(r) {
   return !!f && (f.snooze_mode === "shipped" || (f.snooze_mode === "until" && f.snooze_until && f.snooze_until >= TODAY));
 }
 const isAlarm = (r) => isLate(r) && !isSnoozed(r);
+// 経過日数 → 色の段階（14〜20日：2週間／21〜27日：3週間／28〜34日：4週間／35日〜：5週間以上）
+const tierOf = (days) => days >= 35 ? "w5" : days >= 28 ? "w4" : days >= 21 ? "w3" : days >= 14 ? "w2" : "";
+const TIER_LABEL = { w2: "2週間", w3: "3週間", w4: "4週間", w5: "5週間以上" };
+const LEGEND = `<span class="legend">経過：${["w2", "w3", "w4", "w5"].map(t => `<span class="tag ${t}">${TIER_LABEL[t]}</span>`).join("")}</span>`;
 function followLabel(r) {
   const f = FOLLOW[keyOf(r)]; if (!f) return "";
   const stop = f.snooze_mode === "shipped" ? "発送まで停止" : (f.snooze_mode === "until" && f.snooze_until ? (f.snooze_until >= TODAY ? `${md(f.snooze_until)}まで停止` : `${md(f.snooze_until)}で停止終了`) : "");
   return `${esc(f.note ?? "")}${stop ? ` <span class="tag snz">${stop}</span>` : ""}`;
 }
-function rowClass(r) { return isAlarm(r) ? "late" : (isLate(r) && isSnoozed(r) ? "snz" : ""); }
+function rowClass(r) { return isAlarm(r) ? tierOf(ageOf(r)) : (isLate(r) && isSnoozed(r) ? "snz" : ""); }
 function statusTag(r) {
   if (r.order_status === "キャンセル") return `<span class="tag cancel">キャンセル</span>`;
   if (r.ship_status === "発送済") return `<span class="tag done">発送済</span>`;
-  if (isAlarm(r)) return `<span class="tag late">${ageOf(r)}日経過</span>`;
+  if (isAlarm(r)) return `<span class="tag ${tierOf(ageOf(r))}">${ageOf(r)}日経過</span>`;
   if (isLate(r)) return `<span class="tag snz">対応中</span>`;
   return `<span class="tag open">未発送</span>`;
 }
@@ -340,7 +355,7 @@ async function loadAll() {
   TODAY = todayJST();
   drawAll(); loadHistory(); notifyPC();
 }
-function drawAll() { drawAlarmBar(); drawProducts(); drawOpen(); drawList(); }
+function drawAll() { $("#pLegend").innerHTML = LEGEND; $("#oLegend").innerHTML = LEGEND; drawAlarmBar(); drawProducts(); drawOpen(); drawList(); }
 
 // ---------- アラームの帯・パソコン通知 ----------
 function counts() {
@@ -393,6 +408,7 @@ function aggregate() {
     if (!p) { p = { key: k, code: r.product_code, name: r.product_name, last: "", openQty: 0, openLines: 0, lateLines: 0, alarmLines: 0, oldest: null, recentQty: 0, totalQty: 0, rows: [] }; map.set(k, p); }
     if ((r.order_date || "") >= p.last) { p.last = r.order_date || ""; p.name = r.product_name; }
     if (r.order_status !== "キャンセル") { p.totalQty += pieces(r); if ((r.order_date || "") >= since30) p.recentQty += pieces(r); }
+    if (isAlarm(r) && (!p.oldestAlarm || r.order_date < p.oldestAlarm)) p.oldestAlarm = r.order_date;
     if (isOpen(r)) {
       p.openQty += pieces(r); p.openLines++;
       if (!p.oldest || r.order_date < p.oldest) p.oldest = r.order_date;
@@ -423,9 +439,10 @@ function drawProducts() {
       <th>いちばん古い未発送</th><th class="num">直近30日の受注数</th><th class="num">受注数の合計</th><th>最終受注日</th></tr></thead>
     <tbody>${list.map(p => {
       const oldAge = p.oldest ? Math.round((Date.parse(TODAY) - Date.parse(p.oldest)) / 86400000) : null;
-      return `<tr class="click ${p.alarmLines ? "late" : ""}" data-k="${esc(p.key)}">
+      const tier = p.oldestAlarm ? tierOf(Math.round((Date.parse(TODAY) - Date.parse(p.oldestAlarm)) / 86400000)) : "";
+      return `<tr class="click ${tier}" data-k="${esc(p.key)}">
       <td class="ell" title="${esc(p.name)}">${esc(p.name)}</td><td class="mono">${esc(p.code ?? "")}</td>
-      <td class="num">${p.alarmLines ? `<span class="tag late">${p.alarmLines}件</span>` : (p.lateLines ? `<span class="tag snz">対応中 ${p.lateLines}</span>` : `<span class="sub">0</span>`)}</td>
+      <td class="num">${p.alarmLines ? `<span class="tag ${tier}">${p.alarmLines}件</span>` : (p.lateLines ? `<span class="tag snz">対応中 ${p.lateLines}</span>` : `<span class="sub">0</span>`)}</td>
       <td class="num ${p.openLines ? "" : "zero"}">${fmtN(p.openLines)}</td><td class="num ${p.openQty ? "" : "zero"}">${fmtN(p.openQty)}</td>
       <td class="mono age">${p.oldest ? `${esc(p.oldest)}（${oldAge}日）` : ""}</td>
       <td class="num">${fmtN(p.recentQty)}</td><td class="num">${fmtN(p.totalQty)}</td><td class="mono">${esc(p.last)}</td></tr>`;
