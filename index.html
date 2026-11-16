@@ -75,10 +75,10 @@ table.ledger th.num, table.ledger td.num{text-align:right}
 table.ledger td{padding:9px 10px;border-bottom:1px solid #eeece6;white-space:nowrap}
 table.ledger tr.click:hover td{cursor:pointer;filter:brightness(.98)}
 /* 経過週数ごとの色：2週間台→3週間台→4週間台→5週間以上 */
-:root{ --w2-bg:#fff5d1; --w2-ink:#8a6200; --w2-bar:#e6b422;
-       --w3-bg:#ffe4c7; --w3-ink:#a14a00; --w3-bar:#ee8a2a;
-       --w4-bg:#fcd3ce; --w4-ink:#a12020; --w4-bar:#d9483b;
-       --w5-bg:#f3aaa3; --w5-ink:#6e0b0b; --w5-bar:#8f1515; }
+:root{ --w2-bg:#fff3a6; --w2-ink:#6b5300; --w2-bar:#f2c200;   /* 2週間：黄 */
+       --w3-bg:#bfe8b8; --w3-ink:#1d5e1a; --w3-bar:#2e9e2a;   /* 3週間：緑 */
+       --w4-bg:#b9d4f7; --w4-ink:#0f3f80; --w4-bar:#1f6fd1;   /* 4週間：青 */
+       --w5-bg:#ffa3a3; --w5-ink:#8b0000; --w5-bar:#e01e1e; } /* 5週間以上：赤 */
 table.ledger tr.w2 td{background:var(--w2-bg)} table.ledger tr.w2 td:first-child{box-shadow:inset 4px 0 var(--w2-bar)} table.ledger tr.w2 td.age{color:var(--w2-ink);font-weight:700}
 table.ledger tr.w3 td{background:var(--w3-bg)} table.ledger tr.w3 td:first-child{box-shadow:inset 4px 0 var(--w3-bar)} table.ledger tr.w3 td.age{color:var(--w3-ink);font-weight:700}
 table.ledger tr.w4 td{background:var(--w4-bg)} table.ledger tr.w4 td:first-child{box-shadow:inset 4px 0 var(--w4-bar)} table.ledger tr.w4 td.age{color:var(--w4-ink);font-weight:700}
