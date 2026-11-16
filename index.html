@@ -148,6 +148,22 @@ table.ledger td.zero{color:#c3c0b8}
 #printArea tr.ph td{font-weight:700;font-size:11px;padding:6px 5px;border-top:2px solid #333;border-bottom:1px solid #333}
 #printArea .chk{width:14px;height:14px;border:1.5px solid #333;display:inline-block}
 .popt{display:flex;flex-direction:column;gap:8px;font-size:13px;margin-top:8px}
+#printArea .inst{font-size:12px}
+#printArea .ihead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #000;padding-bottom:4px;margin-bottom:10px}
+#printArea .ihead h1{font-size:24px;letter-spacing:.3em;margin:0}
+#printArea .ino{font-size:16px;font-weight:700}
+#printArea .ikv th,#printArea .isign th{background:#eee;border:1px solid #555;width:16%;font-size:11px}
+#printArea .ikv td,#printArea .isign td{border:1px solid #555}
+#printArea .ikv{margin-bottom:10px}
+#printArea .ibox{border:1.5px solid #333;border-radius:4px;padding:8px 10px;margin-bottom:10px;line-height:1.6}
+#printArea .ilbl{font-size:10px;font-weight:700;color:#333;margin-bottom:2px}
+#printArea .iaddr{font-size:14px}
+#printArea .ilines{margin-bottom:10px}
+#printArea .ilines th{background:#eee;border:1px solid #555;font-size:11px}
+#printArea .ilines td{border:1px solid #555;padding:8px 6px;font-size:12.5px}
+#printArea .isign td{height:44px}
+#printArea .isign{margin-top:14px}
+#printArea .ifoot{margin-top:16px;font-size:12px}
 .popt label{display:flex;gap:8px;align-items:center}
 .popt input[type=checkbox],.popt input[type=radio]{width:auto;margin:0}
 
@@ -322,6 +338,14 @@ function csvToOrders(rows) {
       desired_date: d(g(r, "配送希望日")), tracking: g(r, "送り状番号") || null,
       customer: g(r, "会社名") || null, person: g(r, "担当者") || null, pref: g(r, "都道府県") || null,
       dest_company: g(r, "配送先 会社名") || null,
+      dest_dept: g(r, "配送先 部署名") || null,
+      dest_person2: g(r, "配送先 担当者") || null,
+      dest_zip: g(r, "配送先 郵便番号") || g(r, "郵便番号") || null,
+      dest_address: (g(r, "配送先 住所") ? (g(r, "配送先 都道府県") + g(r, "配送先 住所")) : (g(r, "都道府県") + g(r, "住所"))) || null,
+      dest_phone: g(r, "配送先 電話番号") || g(r, "電話番号") || null,
+      desired_time: g(r, "配送希望時間") || null,
+      ship_memo: g(r, "発送メモ") || null,
+      remarks: [g(r, "備考"), g(r, "連絡事項")].filter(Boolean).join(" / ") || null,
       product_code: g(r, "商品管理番号") || g(r, "品番") || null, product_name: name.replace(/\s+/g, " "),
       qty: toNum(g(r, "受注数")), irisu: toNum(g(r, "入数")), unit: g(r, "単位") || null,
       unit_price: toNum(g(r, "単価")), subtotal: toNum(g(r, "小計")),
@@ -333,7 +357,9 @@ function csvToOrders(rows) {
 }
 
 // ---------- 判定 ----------
-let ROWS = [], FOLLOW = {}, TODAY = todayJST();
+let ROWS = [], FOLLOW = {}, INST = [], TODAY = todayJST();
+const instOf = (r) => INST.filter(x => x.order_id === r.order_id && (x.lines || []).some(l => l.line_seq === r.line_seq))
+  .sort((a, b) => b.created_at.localeCompare(a.created_at));
 const keyOf = (r) => r.order_id + "|" + r.line_seq;
 const pieces = (r) => (r.qty ?? 0) * (r.irisu && r.irisu > 0 ? r.irisu : 1);
 const prodKey = (r) => r.product_code ? "C:" + normA(r.product_code) : "N:" + normA(r.product_name);
@@ -350,9 +376,11 @@ const tierOf = (days) => days >= 35 ? "w5" : days >= 28 ? "w4" : days >= 21 ? "w
 const TIER_LABEL = { w2: "2週間", w3: "3週間", w4: "4週間", w5: "5週間以上" };
 const LEGEND = `<span class="legend">経過：${["w2", "w3", "w4", "w5"].map(t => `<span class="tag ${t}">${TIER_LABEL[t]}</span>`).join("")}</span>`;
 function followLabel(r) {
-  const f = FOLLOW[keyOf(r)]; if (!f) return "";
+  const ins = instOf(r)[0];
+  const insTag = ins ? `<span class="tag done">指示書No.${ins.inst_no} ${md(ins.created_at.slice(0, 10))}発行</span> ` : "";
+  const f = FOLLOW[keyOf(r)]; if (!f) return insTag;
   const stop = f.snooze_mode === "shipped" ? "発送まで停止" : (f.snooze_mode === "until" && f.snooze_until ? (f.snooze_until >= TODAY ? `${md(f.snooze_until)}まで停止` : `${md(f.snooze_until)}で停止終了`) : "");
-  return `${esc(f.note ?? "")}${stop ? ` <span class="tag snz">${stop}</span>` : ""}`;
+  return `${insTag}${esc(f.note ?? "")}${stop ? ` <span class="tag snz">${stop}</span>` : ""}`;
 }
 function rowClass(r) { return isAlarm(r) ? tierOf(ageOf(r)) : (isLate(r) && isSnoozed(r) ? "snz" : ""); }
 function statusTag(r) {
@@ -379,8 +407,10 @@ async function fetchAll(table, select, order) {
 async function loadAll() {
   $("#pCount").innerHTML = '<span class="spinner"></span>読み込み中…';
   try {
-    const [rows, fol] = await Promise.all([fetchAll("bcart_orders", "*", "ordered_at"), fetchAll("order_followups", "*")]);
+    const [rows, fol, ins] = await Promise.all([fetchAll("bcart_orders", "*", "ordered_at"), fetchAll("order_followups", "*"),
+      fetchAll("ship_instructions", "*", "created_at").catch(() => [])]);
     ROWS = rows; FOLLOW = {}; fol.forEach(f => FOLLOW[f.order_id + "|" + f.line_seq] = f);
+    INST = ins;
   } catch (e) { $("#pCount").textContent = ""; alert("読み込みに失敗しました：" + e.message); return; }
   TODAY = todayJST();
   drawAll(); loadHistory(); notifyPC();
@@ -539,12 +569,20 @@ function openFollow(k) {
         <label><input type="radio" name="fuMode" value="shipped" ${mode === "shipped" ? "checked" : ""}>発送されるまで止める</label>
       </div>
     </div>
+    <div class="f"><label>出荷指示書</label>
+      <div class="sub">在庫はあるのに出荷されていない場合などに、倉庫・出荷担当へ渡す指示書（A4）を発行します。</div>
+      ${instOf(r).map(x => `<div style="display:flex;gap:8px;align-items:center;margin-top:6px;font-size:13px"><span class="tag done">No.${x.inst_no}</span>
+        ${new Date(x.created_at).toLocaleString("ja-JP")} 発行（${(x.lines || []).length}品目）<button class="btn small" data-reprint="${x.id}">再印刷</button></div>`).join("")}
+      <div class="actions" style="justify-content:flex-start;margin-top:8px"><button class="btn primary" id="fuInst">出荷指示書を発行する</button></div>
+    </div>
     <div class="actions">
       ${FOLLOW[k] ? `<button class="btn danger" id="fuDel">メモを消す</button>` : ""}<span style="flex:1"></span>
       <button class="btn" id="fuCancel">閉じる</button><button class="btn primary" id="fuSave">保存</button>
     </div>`;
   $("#modal2").classList.remove("hidden");
   $("#fuCancel").onclick = () => $("#modal2").classList.add("hidden");
+  $("#fuInst").onclick = () => openInstruction(r);
+  $("#modal2Box").querySelectorAll("[data-reprint]").forEach(b => b.onclick = () => printInstruction(INST.find(x => x.id === b.dataset.reprint)));
   $("#fuUntil").onfocus = () => { document.querySelector('input[name=fuMode][value=until]').checked = true; };
   $("#fuSave").onclick = async () => {
     const m = document.querySelector("input[name=fuMode]:checked").value || null;
@@ -569,6 +607,81 @@ function afterFollowChange() {
   if (cp && !$("#modal").classList.contains("hidden")) openProduct(cp);
 }
 $("#modal2").addEventListener("click", e => { if (e.target.id === "modal2") $("#modal2").classList.add("hidden"); });
+
+// ---------- 出荷指示書 ----------
+function openInstruction(r) {
+  const lines = ROWS.filter(x => x.order_id === r.order_id && isOpen(x)).sort((a, b) => Number(a.line_seq) - Number(b.line_seq));
+  const d = r;
+  $("#modal2Box").innerHTML = `
+    <h3>出荷指示書を発行</h3>
+    <div class="meta">受注番号 ${esc(r.order_no ?? "")}（受注日 ${esc(r.order_date)}）　${esc(r.customer || "")}</div>
+    <div class="f"><label>出荷する商品（この受注の未発送 ${lines.length}品目）</label>
+      <div class="popt">${lines.map(x => `<label><input type="checkbox" class="il" value="${esc(x.line_seq)}" ${x.line_seq === r.line_seq || lines.length <= 10 ? "checked" : ""}>
+        <span>${esc(x.product_name)}　<b>${fmtN(pieces(x))}${esc(x.unit ?? "")}</b>　<span class="sub">（${ageOf(x)}日経過）</span></span></label>`).join("")}</div></div>
+    <div class="f"><label>お届け先</label>
+      <div style="font-size:13px;line-height:1.6">〒${esc(d.dest_zip ?? "")}　${esc(d.dest_address ?? "")}<br>${esc(d.dest_company || d.customer || "")} ${esc(d.dest_dept ?? "")} ${esc(d.dest_person2 || d.person || "")} 様　TEL ${esc(d.dest_phone ?? "")}</div>
+      ${d.dest_address ? "" : `<div class="alert warn">住所が入っていません。受注CSVをもう一度取り込むと、住所・電話番号が入ります。</div>`}
+    </div>
+    <div class="f"><label>出荷予定日</label><input type="date" id="inDate" value="${esc(TODAY)}" style="width:auto"></div>
+    <div class="f"><label>指示メモ（例：在庫あり・本日中に発送／クール便で）</label><textarea id="inNote" rows="2"></textarea></div>
+    <div class="f"><div class="popt"><label><input type="checkbox" id="inSnz" checked>アラームを「発送されるまで止める」にする</label></div></div>
+    <div class="actions"><button class="btn" id="inCancel">戻る</button><button class="btn primary" id="inGo">発行して印刷</button></div>`;
+  $("#inCancel").onclick = () => openFollow(keyOf(r));
+  $("#inGo").onclick = async (e) => {
+    const sel = [...document.querySelectorAll(".il:checked")].map(x => x.value);
+    if (!sel.length) { alert("出荷する商品を1つ以上選んでください"); return; }
+    const picked = lines.filter(x => sel.includes(x.line_seq));
+    const btn = e.target; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>発行中…';
+    const rec = {
+      order_id: r.order_id, order_no: r.order_no, customer: r.customer, plan_date: $("#inDate").value || null,
+      dest: { zip: d.dest_zip, address: d.dest_address, company: d.dest_company || d.customer, dept: d.dest_dept, person: d.dest_person2 || d.person,
+              phone: d.dest_phone, desired_date: d.desired_date, desired_time: d.desired_time, ship_memo: d.ship_memo, remarks: d.remarks, order_date: d.order_date },
+      lines: picked.map(x => ({ line_seq: x.line_seq, code: x.product_code, name: x.product_name, qty: pieces(x), unit: x.unit, order_date: x.order_date })),
+      note: $("#inNote").value.trim() || null,
+    };
+    const { data, error } = await sb.from("ship_instructions").insert(rec).select().single();
+    if (error) { alert("発行に失敗しました：" + error.message); btn.disabled = false; btn.textContent = "発行して印刷"; return; }
+    INST.unshift(data);
+    if ($("#inSnz").checked) {
+      const ups = picked.map(x => { const f = FOLLOW[keyOf(x)] || {};
+        return { order_id: x.order_id, line_seq: x.line_seq, note: f.note || `出荷指示書No.${data.inst_no}を発行`, snooze_mode: "shipped", snooze_until: null, updated_at: new Date().toISOString() }; });
+      const { data: fd } = await sb.from("order_followups").upsert(ups, { onConflict: "order_id,line_seq" }).select();
+      (fd || []).forEach(f => FOLLOW[f.order_id + "|" + f.line_seq] = f);
+    }
+    $("#modal2").classList.add("hidden");
+    afterFollowChange();
+    printInstruction(data);
+  };
+}
+function printInstruction(x) {
+  if (!x) return;
+  const d = x.dest || {};
+  const issued = new Date(x.created_at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
+  $("#printArea").innerHTML = `
+    <div class="inst">
+      <div class="ihead"><h1>出荷指示書</h1><div class="ino">No. ${x.inst_no}</div></div>
+      <table class="ikv">
+        <tr><th>発行日時</th><td>${esc(issued)}</td><th>出荷予定日</th><td><b>${esc(x.plan_date ?? "")}</b></td></tr>
+        <tr><th>受注番号</th><td>${esc(x.order_no ?? "")}</td><th>受注日</th><td>${esc(d.order_date ?? "")}</td></tr>
+        <tr><th>注文者</th><td colspan="3">${esc(x.customer ?? "")}</td></tr>
+      </table>
+      <div class="ibox"><div class="ilbl">お届け先</div>
+        <div class="iaddr">〒${esc(d.zip ?? "")}　${esc(d.address ?? "")}<br><b>${esc(d.company ?? "")} ${esc(d.dept ?? "")}</b>　${esc(d.person ?? "")} 様<br>TEL ${esc(d.phone ?? "")}</div>
+        ${d.desired_date || d.desired_time ? `<div>配送希望：${esc(d.desired_date ?? "")} ${esc(d.desired_time ?? "")}</div>` : ""}
+      </div>
+      <table class="ilines">
+        <thead><tr><th style="width:5%">No</th><th style="width:12%">商品管理番号</th><th>商品名</th><th style="width:10%" class="n">数量</th><th style="width:8%">確認</th><th style="width:14%">ロット番号</th><th style="width:12%">使用期限</th></tr></thead>
+        <tbody>${(x.lines || []).map((l, i) => `<tr><td>${i + 1}</td><td>${esc(l.code ?? "")}</td><td>${esc(l.name)}</td><td class="n"><b>${fmtN(l.qty)}</b> ${esc(l.unit ?? "")}</td>
+          <td><span class="chk"></span></td><td></td><td></td></tr>`).join("")}</tbody>
+      </table>
+      ${x.note ? `<div class="ibox"><div class="ilbl">指示メモ</div>${esc(x.note)}</div>` : ""}
+      ${d.ship_memo || d.remarks ? `<div class="ibox"><div class="ilbl">Bカートの発送メモ・備考</div>${esc([d.ship_memo, d.remarks].filter(Boolean).join(" / "))}</div>` : ""}
+      <table class="isign"><tr><th>指示者</th><th>ピッキング</th><th>梱包</th><th>出荷</th></tr><tr><td></td><td></td><td></td><td></td></tr></table>
+      <div class="ifoot">送り状番号：＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿　　出荷日：＿＿＿＿／＿＿</div>
+    </div>`;
+  setPage(false);
+  setTimeout(() => window.print(), 50);
+}
 
 // ---------- 未発送一覧 ----------
 ["oq", "oFilter"].forEach(id => $("#" + id).addEventListener("input", drawOpen));
@@ -704,7 +817,7 @@ async function decodeFile(file) {
   if (utf.includes("受注ID") && utf.includes("受注内連番")) return utf;
   return new TextDecoder("shift_jis").decode(buf);
 }
-const CMP = ["order_status", "ship_status", "ship_date", "tracking", "qty"];
+const CMP = ["order_status", "ship_status", "ship_date", "tracking", "qty", "dest_address", "dest_phone"];
 let PENDING = null;
 async function readCsvFile(file) {
   const box = $("#preview");
