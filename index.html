@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>受注台帳</title>
+<title>INVOICE台帳</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -12,8 +12,7 @@
   --bg:#f5f4f0; --panel:#ffffff; --ink:#1d2329; --sub:#5d6670; --line:#dedbd3;
   --accent:#1f4e79; --accent-soft:#e6eef6;
   --warn:#9a5b00; --warn-bg:#fff4e0; --err:#a42828; --err-bg:#fdeaea;
-  --ok:#2e6b3a; --ok-bg:#e7f3e9; --muted-bg:#efede8;
-  --late-bg:#fbe3e1; --late-ink:#8f1f1f;
+  --ok:#2e6b3a; --ok-bg:#e7f3e9;
   --mono:"IBM Plex Mono",ui-monospace,monospace;
 }
 *{box-sizing:border-box}
@@ -22,21 +21,21 @@ button{font:inherit;cursor:pointer}
 input,select,textarea{font:inherit;color:inherit}
 .hidden{display:none!important}
 
+/* ヘッダー */
 header{background:var(--panel);border-bottom:1px solid var(--line);padding:0 20px;display:flex;align-items:center;gap:24px;height:56px;position:sticky;top:0;z-index:10}
 header h1{font-size:16px;margin:0;letter-spacing:.04em}
 nav{display:flex;gap:4px}
 nav button{background:none;border:none;padding:8px 14px;border-radius:6px;color:var(--sub)}
 nav button.on{background:var(--accent-soft);color:var(--accent);font-weight:700}
-nav .nb{display:inline-block;min-width:18px;padding:0 5px;margin-left:4px;border-radius:9px;background:var(--err);color:#fff;font-size:11px;line-height:18px;text-align:center}
 header .who{margin-left:auto;color:var(--sub);font-size:12px;display:flex;gap:10px;align-items:center}
-main{max-width:1400px;margin:0 auto;padding:20px}
+main{max-width:1280px;margin:0 auto;padding:20px}
 
 .btn{border:1px solid var(--line);background:var(--panel);padding:7px 14px;border-radius:6px}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:500}
 .btn.danger{color:var(--err);border-color:#e5b9b9}
-.btn.small{padding:4px 10px;font-size:12px}
 .btn:disabled{opacity:.5;cursor:default}
 
+/* ログイン */
 #login{max-width:360px;margin:12vh auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:28px}
 #login h2{margin:0 0 18px;font-size:18px}
 #login label{display:block;font-size:12px;color:var(--sub);margin:12px 0 4px}
@@ -44,952 +43,365 @@ main{max-width:1400px;margin:0 auto;padding:20px}
 #login .btn{width:100%;margin-top:18px}
 #loginErr{color:var(--err);font-size:12px;margin-top:10px}
 
-/* アラームの帯 */
-#alarmBar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 16px;border-radius:10px;margin-bottom:16px;border:1px solid}
-#alarmBar.on{background:var(--late-bg);border-color:#f0b9b3;color:var(--late-ink)}
-#alarmBar.off{background:var(--ok-bg);border-color:#bfdcc4;color:var(--ok)}
-#alarmBar .big{font-size:18px;font-weight:700}
-#alarmBar .sp{flex:1}
-
+/* 取込 */
 #drop{border:2px dashed #b9c4cf;border-radius:10px;background:var(--panel);padding:36px;text-align:center;color:var(--sub);transition:.15s}
 #drop.over{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 #drop strong{display:block;font-size:16px;color:var(--ink);margin-bottom:6px}
 #drop .row{margin-top:14px;display:flex;gap:8px;justify-content:center}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-top:18px;padding:16px}
-.card h3{margin:0 0 8px;font-size:15px}
-.alert{padding:8px 10px;border-radius:6px;font-size:12px;line-height:1.5;margin-top:6px}
-.alert.info{background:var(--accent-soft);color:var(--accent)}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-top:18px;overflow:hidden}
+.card-head{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:#faf9f6}
+.card-head .fname{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-head .state{margin-left:auto;font-size:12px;color:var(--sub)}
+.card-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}
+.card-body iframe{width:100%;height:640px;border:0;border-right:1px solid var(--line);background:#e9e7e1}
+.form{padding:16px;overflow:auto;max-height:640px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+.f label{display:block;font-size:11px;color:var(--sub);margin-bottom:3px}
+.f input,.f select,.f textarea{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:#fff}
+.f.wide{grid-column:1/-1}
+.num{font-family:var(--mono);text-align:right}
+h4{margin:18px 0 8px;font-size:13px}
+table.items{width:100%;border-collapse:collapse;font-size:12px}
+table.items th{font-weight:500;color:var(--sub);text-align:left;padding:4px;border-bottom:1px solid var(--line);font-size:11px}
+table.items td{padding:3px 2px}
+table.items input{width:100%;padding:5px 6px;border:1px solid var(--line);border-radius:4px}
+table.items .x{border:none;background:none;color:var(--sub);font-size:16px;padding:0 4px}
+.alerts{margin-top:14px;display:flex;flex-direction:column;gap:6px}
+.alert{padding:8px 10px;border-radius:6px;font-size:12px;line-height:1.5}
 .alert.warn{background:var(--warn-bg);color:var(--warn)}
 .alert.err{background:var(--err-bg);color:var(--err)}
 .alert.ok{background:var(--ok-bg);color:var(--ok)}
-.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.alert.info{background:var(--accent-soft);color:var(--accent)}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
 
+/* 台帳 */
 .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 .toolbar input,.toolbar select{padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:#fff}
 .toolbar input[type=search]{min-width:240px}
 .toolbar .count{color:var(--sub);font-size:12px;margin-left:auto}
 .tablewrap{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:auto}
 table.ledger{width:100%;border-collapse:collapse;font-size:13px}
-table.ledger th{position:sticky;top:0;background:#faf9f6;text-align:left;font-weight:500;color:var(--sub);font-size:11px;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;z-index:1}
-table.ledger th.num, table.ledger td.num{text-align:right}
+table.ledger th{position:sticky;top:0;background:#faf9f6;text-align:left;font-weight:500;color:var(--sub);font-size:11px;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
 table.ledger td{padding:9px 10px;border-bottom:1px solid #eeece6;white-space:nowrap}
-table.ledger tr.click:hover td{cursor:pointer;filter:brightness(.98)}
-/* 経過週数ごとの色：2週間台→3週間台→4週間台→5週間以上 */
-:root{ --w2-bg:#fff3a6; --w2-ink:#6b5300; --w2-bar:#f2c200;   /* 2週間：黄 */
-       --w3-bg:#bfe8b8; --w3-ink:#1d5e1a; --w3-bar:#2e9e2a;   /* 3週間：緑 */
-       --w4-bg:#b9d4f7; --w4-ink:#0f3f80; --w4-bar:#1f6fd1;   /* 4週間：青 */
-       --w5-bg:#ffa3a3; --w5-ink:#8b0000; --w5-bar:#e01e1e; } /* 5週間以上：赤 */
-table.ledger tr.w2 td{background:var(--w2-bg)} table.ledger tr.w2 td:first-child{box-shadow:inset 4px 0 var(--w2-bar)} table.ledger tr.w2 td.age{color:var(--w2-ink);font-weight:700}
-table.ledger tr.w3 td{background:var(--w3-bg)} table.ledger tr.w3 td:first-child{box-shadow:inset 4px 0 var(--w3-bar)} table.ledger tr.w3 td.age{color:var(--w3-ink);font-weight:700}
-table.ledger tr.w4 td{background:var(--w4-bg)} table.ledger tr.w4 td:first-child{box-shadow:inset 4px 0 var(--w4-bar)} table.ledger tr.w4 td.age{color:var(--w4-ink);font-weight:700}
-table.ledger tr.w5 td{background:var(--w5-bg)} table.ledger tr.w5 td:first-child{box-shadow:inset 4px 0 var(--w5-bar)} table.ledger tr.w5 td.age{color:var(--w5-ink);font-weight:700}
-.tag.w2{background:var(--w2-bar);color:#3d2b00} .tag.w3{background:var(--w3-bar);color:#fff}
-.tag.w4{background:var(--w4-bar);color:#fff} .tag.w5{background:var(--w5-bar);color:#fff}
-.legend{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--sub)}
-.legend .tag{font-size:11px}
-table.ledger tr.snz td{background:var(--muted-bg)}
-table.ledger td.zero{color:#c3c0b8}
+table.ledger tr:hover td{background:#fbfaf7;cursor:pointer}
 .mono{font-family:var(--mono)}
-.num{font-family:var(--mono)}
-.ell{max-width:320px;overflow:hidden;text-overflow:ellipsis}
-.wrap{white-space:normal!important;min-width:180px}
-.sub{color:var(--sub);font-size:11px}
-.empty{padding:40px;text-align:center;color:var(--sub)}
-.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;white-space:nowrap}
-.tag.late{background:var(--err);color:#fff}
-.tag.snz{background:var(--muted-bg);color:var(--sub);border:1px solid var(--line)}
-.tag.open{background:var(--warn-bg);color:var(--warn)}
+.tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px}
+.tag.need{background:var(--warn-bg);color:var(--warn)}
 .tag.done{background:var(--ok-bg);color:var(--ok)}
-.tag.cancel{background:var(--muted-bg);color:var(--sub)}
+.empty{padding:40px;text-align:center;color:var(--sub)}
 
-#modal,#modal2{position:fixed;inset:0;background:rgba(20,25,30,.45);display:flex;align-items:flex-start;justify-content:center;padding:4vh 16px;z-index:50;overflow:auto}
-#modal2{z-index:60;padding-top:12vh}
-#modal .box{background:var(--panel);border-radius:10px;width:min(1120px,100%);padding:22px}
-#modal2 .box{background:var(--panel);border-radius:10px;width:min(520px,100%);padding:22px}
-.box h3{margin:0 0 4px;font-size:17px}
-.box .meta{color:var(--sub);font-size:12px;margin-bottom:6px}
-.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
-.kpi{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
-.kpi .l{font-size:11px;color:var(--sub)} .kpi .v{font-family:var(--mono);font-size:20px;margin-top:2px}
-.kpi.bad{border-color:#f0b9b3;background:var(--late-bg)} .kpi.bad .v{color:var(--late-ink)}
-.sec{border-top:1px solid var(--line);margin-top:16px;padding-top:4px}
-.sec h4{margin:12px 0 8px;font-size:13px}
-.f label{display:block;font-size:12px;color:var(--sub);margin:12px 0 4px}
-.f textarea,.f input{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px}
-.radio{display:flex;flex-direction:column;gap:8px;margin-top:6px;font-size:13px}
-.radio label{display:flex;gap:8px;align-items:center;color:var(--ink);margin:0}
-.radio input[type=date]{width:auto;padding:4px 8px}
-.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:6px}
-@keyframes spin{to{transform:rotate(360deg)}}
+/* 詳細 */
+#modal{position:fixed;inset:0;background:rgba(20,25,30,.45);display:flex;align-items:flex-start;justify-content:center;padding:5vh 16px;z-index:50;overflow:auto}
+#modal .box{background:var(--panel);border-radius:10px;width:min(860px,100%);padding:22px}
+#modal h3{margin:0 0 4px;font-size:17px}
+#modal .meta{color:var(--sub);font-size:12px;margin-bottom:14px}
+dl.kv{display:grid;grid-template-columns:110px 1fr 110px 1fr;gap:6px 12px;margin:0 0 6px;font-size:13px}
+dl.kv dt{color:var(--sub);font-size:12px}
+dl.kv dd{margin:0}
 
-/* ---- 印刷（A4・色別） ---- */
-#printArea{display:none}
-@media print{
-  body{background:#fff}
-  body > *:not(#printArea){display:none!important}
-  #printArea{display:block;font-size:10.5px;color:#000}
-  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-}
-#printArea h1{font-size:16px;margin:0 0 2px}
-#printArea .pmeta{font-size:10px;color:#444;margin-bottom:8px}
-#printArea .psum{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
-#printArea .psum span{padding:3px 10px;border-radius:4px;font-weight:700}
-#printArea section{margin-bottom:14px}
-#printArea section.brk{break-before:page}
-#printArea section:first-of-type{break-before:auto}
-#printArea h2{font-size:13px;margin:0 0 4px;padding:5px 8px;border-radius:4px}
-#printArea table{width:100%;border-collapse:collapse;table-layout:fixed}
-#printArea th{font-size:9.5px;font-weight:700;text-align:left;padding:4px 5px;border-bottom:1.5px solid #333}
-#printArea td{padding:4px 5px;border-bottom:1px solid #bbb;vertical-align:top;word-break:break-all}
-#printArea td.n,#printArea th.n{text-align:right}
-#printArea tr{break-inside:avoid}
-#printArea thead{display:table-header-group}
-#printArea tbody.pg{break-inside:avoid}
-#printArea tr.ph td{font-weight:700;font-size:11px;padding:6px 5px;border-top:2px solid #333;border-bottom:1px solid #333}
-#printArea .chk{width:14px;height:14px;border:1.5px solid #333;display:inline-block}
-.popt{display:flex;flex-direction:column;gap:8px;font-size:13px;margin-top:8px}
-#printArea .inst{font-size:12px}
-#printArea .ihead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #000;padding-bottom:4px;margin-bottom:10px}
-#printArea .ihead h1{font-size:24px;letter-spacing:.3em;margin:0}
-#printArea .ino{font-size:16px;font-weight:700}
-#printArea .ikv th,#printArea .isign th{background:#eee;border:1px solid #555;width:16%;font-size:11px}
-#printArea .ikv td,#printArea .isign td{border:1px solid #555}
-#printArea .ikv{margin-bottom:10px}
-#printArea .ibox{border:1.5px solid #333;border-radius:4px;padding:8px 10px;margin-bottom:10px;line-height:1.6}
-#printArea .ilbl{font-size:10px;font-weight:700;color:#333;margin-bottom:2px}
-#printArea .iaddr{font-size:14px}
-#printArea .ilines{margin-bottom:10px}
-#printArea .ilines th{background:#eee;border:1px solid #555;font-size:11px}
-#printArea .ilines td{border:1px solid #555;padding:8px 6px;font-size:12.5px}
-#printArea .isign td{height:44px}
-#printArea .isign{margin-top:14px}
-#printArea .ifoot{margin-top:16px;font-size:12px}
-.popt label{display:flex;gap:8px;align-items:center}
-.popt input[type=checkbox],.popt input[type=radio]{width:auto;margin:0}
+/* 仕入価格 */
+.up{color:var(--err)} .down{color:var(--ok)} .flat{color:var(--sub)}
+.fx{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px}
+.fx b{font-size:13px}
+.fx .cur{display:flex;gap:4px;align-items:center}
+.fx input{width:96px;padding:5px 7px;border:1px solid var(--line);border-radius:5px;font-family:var(--mono);text-align:right}
+.sub{color:var(--sub);font-size:11px}
+.pstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.pstats > div{border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--accent)}
+.vsw{display:flex;gap:4px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
+.vsw button{border:1px solid var(--line);background:var(--panel);padding:6px 14px;border-radius:6px;color:var(--sub)}
+.vsw button.on{background:var(--accent-soft);border-color:var(--accent-soft);color:var(--accent);font-weight:700}
+.tag.best{background:var(--ok);color:#fff}
+.tag.loss{background:var(--err);color:#fff}
+.tag.low{background:var(--warn-bg);color:var(--warn)}
+tr.lossrow td{background:var(--err-bg)}
+.tag.old{background:var(--warn-bg);color:var(--warn)}
+.cand{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,2fr) 110px auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #eeece6;font-size:13px}
+.cand select,.cand input{width:100%;padding:5px 7px;border:1px solid var(--line);border-radius:5px;background:#fff}
+.ez{display:grid;grid-template-columns:minmax(0,1.3fr) 24px minmax(0,1.6fr) 170px;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #eeece6;font-size:13px}
+.ez input{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:5px;background:#fff}
+.ez input.ok{border-color:var(--ok);background:var(--ok-bg)}
+.ez input.maybe{border-color:#e0a14a;background:var(--warn-bg)}
+.ez .arrow{color:var(--sub);text-align:center}
+.ez .u{display:flex;gap:4px;align-items:center;font-size:11px;color:var(--sub);white-space:nowrap}
+.ez .u input{width:52px;text-align:right}
+.pstats .l{font-size:11px;color:var(--sub)} .pstats .v{font-family:var(--mono);font-size:17px;margin-top:2px}
 
 @media (max-width:860px){
-  .kpis{grid-template-columns:1fr 1fr}
-  header{gap:12px;padding:0 12px;overflow-x:auto}
+  .card-body{grid-template-columns:1fr}
+  .card-body iframe{height:380px;border-right:0;border-bottom:1px solid var(--line)}
+  .form{max-height:none}
+  dl.kv{grid-template-columns:100px 1fr}
+  header{gap:12px;padding:0 12px}
   main{padding:16px}
 }
 </style>
 </head>
 <body>
 
+<!-- ログイン -->
 <section id="login" class="hidden">
-  <h2>受注台帳</h2>
+  <h2>INVOICE台帳</h2>
   <label>メールアドレス</label><input id="email" type="email" autocomplete="username">
   <label>パスワード</label><input id="pw" type="password" autocomplete="current-password">
   <button class="btn primary" id="loginBtn">ログイン</button>
   <div id="loginErr"></div>
 </section>
 
+<!-- アプリ本体 -->
 <div id="app" class="hidden">
   <header>
-    <h1>受注台帳</h1>
+    <h1>INVOICE台帳</h1>
     <nav>
-      <button data-tab="prod" class="on">商品別</button>
-      <button data-tab="open">未発送一覧<span class="nb hidden" id="navBadge"></span></button>
-      <button data-tab="inst">出荷指示書</button>
-      <button data-tab="list">受注明細</button>
-      <button data-tab="import">CSV取込</button>
+      <button data-tab="import" class="on">取込</button>
+      <button data-tab="ledger">台帳</button>
+      <button data-tab="price">仕入価格</button>
+      <button data-tab="sales">販売価格</button>
+      <button data-tab="arari">粗利</button>
     </nav>
     <div class="who"><span id="userEmail"></span><button class="btn" id="logoutBtn">ログアウト</button></div>
   </header>
 
   <main>
-    <div id="alarmBar" class="hidden"></div>
-
-    <!-- 商品別 -->
-    <section id="tab-prod">
-      <div class="toolbar">
-        <input type="search" id="pq" placeholder="商品名・商品管理番号で検索">
-        <select id="pFilter">
-          <option value="late">2週間以上の未発送がある商品</option>
-          <option value="open">未発送がある商品</option>
-          <option value="">すべての商品</option>
-        </select>
-        <select id="pSort">
-          <option value="late">2週間以上の件数が多い順</option>
-          <option value="openQty">未発送の数量が多い順</option>
-          <option value="recent">直近30日の受注が多い順</option>
-          <option value="name">商品名順</option>
-        </select>
-        <span id="pLegend"></span><button class="btn" id="pPrint">印刷（A4）</button><span class="count" id="pCount"></span>
-      </div>
-      <div class="tablewrap"><table class="ledger" id="pTable"></table>
-        <div class="empty hidden" id="pEmpty">該当する商品はありません</div></div>
-      <div class="sub" style="margin-top:8px">「未発送」はキャンセルを除き、発送状況が「発送済」でない商品行です。受注日から14日以上たった未発送は、経過週数ごとに色を変えて表示します（行の色は、その商品でいちばん古い対応待ちに合わせています）。数量は「受注数×入数」です。</div>
-    </section>
-
-    <!-- 未発送一覧 -->
-    <section id="tab-open" class="hidden">
-      <div class="toolbar">
-        <input type="search" id="oq" placeholder="商品名・医院名・受注番号で検索">
-        <select id="oFilter">
-          <option value="alarm">2週間以上（対応待ち）</option>
-          <option value="late">2週間以上（すべて）</option>
-          <option value="">未発送すべて</option>
-          <option value="snz">対応メモで停止中</option>
-        </select>
-        <span id="oLegend"></span><button class="btn" id="oPrint">印刷（A4・色別）</button><span class="count" id="oCount"></span>
-      </div>
-      <div class="tablewrap"><table class="ledger">
-        <thead><tr><th>受注日</th><th class="num">経過</th><th>商品名</th><th class="num">数量</th><th>医院名</th><th>対応状況</th><th>納期目安</th><th>対応メモ</th><th></th></tr></thead>
-        <tbody id="oBody"></tbody></table>
-        <div class="empty hidden" id="oEmpty">該当する未発送はありません</div></div>
-    </section>
-
-    <!-- 出荷指示書 -->
-    <section id="tab-inst" class="hidden">
-      <div class="toolbar">
-        <input type="search" id="iq" placeholder="医院名・商品名・受注番号・指示書No.で検索">
-        <select id="iFilter">
-          <option value="">すべて</option>
-          <option value="open">まだ発送されていないもの</option>
-          <option value="late">出荷予定日を過ぎて未発送</option>
-          <option value="done">発送済</option>
-        </select>
-        <input type="month" id="iMonth" title="発行月">
-        <span class="count" id="iCount"></span>
-      </div>
-      <div class="tablewrap"><table class="ledger">
-        <thead><tr><th>No.</th><th>発行日時</th><th>出荷予定日</th><th>医院名</th><th>商品</th><th class="num">品目</th><th>発送の状態</th><th>指示メモ</th><th>受注番号</th><th></th></tr></thead>
-        <tbody id="iBody"></tbody></table>
-        <div class="empty hidden" id="iEmpty">まだ出荷指示書はありません。未発送の行の「対応メモ」から発行できます。</div></div>
-      <div class="sub" style="margin-top:8px">発送の状態は、最後に取り込んだ受注CSVの発送状況から判定します。出荷予定日を過ぎても発送済になっていないものは赤く表示します。</div>
-    </section>
-
-    <!-- 受注明細 -->
-    <section id="tab-list" class="hidden">
-      <div class="toolbar">
-        <input type="search" id="lq" placeholder="商品名・医院名・受注番号・送り状番号で検索">
-        <input type="month" id="lMonth" title="受注月">
-        <span class="count" id="lCount"></span>
-      </div>
-      <div class="tablewrap"><table class="ledger">
-        <thead><tr><th>受注日</th><th>商品名</th><th class="num">数量</th><th class="num">単価</th><th class="num">小計</th><th>医院名</th><th>対応状況</th><th>発送状況</th><th>発送日</th><th>受注番号</th></tr></thead>
-        <tbody id="lBody"></tbody></table>
-        <div class="empty hidden" id="lEmpty">該当する受注はありません</div></div>
-    </section>
-
-    <!-- CSV取込 -->
-    <section id="tab-import" class="hidden">
+    <!-- 取込 -->
+    <section id="tab-import">
       <div id="drop">
-        <strong>ここにBカートの受注CSVをドラッグ＆ドロップ</strong>
-        期間が重なっていても大丈夫です。同じ商品行（受注ID＋受注内連番）は1回だけ登録し、発送状況などを最新の内容に更新します。送料の行は取り込みません。
-        <div class="row"><button class="btn" id="pickBtn">ファイルを選ぶ</button></div>
-        <input type="file" id="fileInput" accept=".csv,text/csv" class="hidden">
+        <strong>ここにINVOICEのPDFをドラッグ＆ドロップ</strong>
+        複数まとめて入れられます。読み取り後、PDFと並べて確認してから登録します。
+        <div class="row">
+          <button class="btn" id="pickBtn">ファイルを選ぶ</button>
+          <button class="btn" id="manualBtn">手入力で登録</button>
+        </div>
+        <input type="file" id="fileInput" accept="application/pdf" multiple class="hidden">
       </div>
-      <div id="preview"></div>
-      <div class="card"><h3>毎朝のLINE通知</h3>
-        <div class="sub">毎朝8時に、受注から2週間以上たった未発送（対応メモで停止中のものを除く）を、商品別にまとめてLINEに送ります。設定が終わったら、下のボタンで試せます。</div>
-        <div class="actions" style="justify-content:flex-start"><button class="btn" id="lineTest">今すぐLINEに送ってみる</button></div>
-        <div id="lineResult"></div>
+      <div id="queue"></div>
+    </section>
+
+    <!-- 台帳 -->
+    <section id="tab-ledger" class="hidden">
+      <div class="toolbar">
+        <input type="search" id="q" placeholder="取引先・請求書番号・AWB・商品名で検索">
+        <select id="fSupplier"><option value="">取引先：すべて</option></select>
+        <select id="fStatus">
+          <option value="">状態：すべて</option>
+          <option value="要確認">要確認のみ</option>
+          <option value="確認済">確認済のみ</option>
+        </select>
+        <input type="month" id="fMonth" title="請求月">
+        <button class="btn" id="csvBtn">CSV出力</button>
+        <span class="count" id="count"></span>
       </div>
-      <div class="card"><h3>取込履歴</h3><div class="tablewrap"><table class="ledger">
-        <thead><tr><th>取込日時</th><th>ファイル名</th><th>受注日の期間</th><th class="num">商品行</th><th class="num">新規</th><th class="num">更新</th><th></th></tr></thead>
-        <tbody id="hBody"></tbody></table></div></div>
+      <div class="tablewrap">
+        <table class="ledger">
+          <thead><tr>
+            <th>請求日</th><th>取引先</th><th>請求書番号</th><th>AWB番号</th><th>商品</th>
+            <th style="text-align:right">数量</th><th style="text-align:right">合計</th><th>状態</th>
+          </tr></thead>
+          <tbody id="ledgerBody"></tbody>
+        </table>
+        <div class="empty hidden" id="ledgerEmpty">まだ登録がありません</div>
+      </div>
+    </section>
+    <!-- 仕入価格（請求書から読むだけ。請求書のデータは書き換えません） -->
+    <section id="tab-price" class="hidden">
+      <div class="fx" id="fxBox"></div>
+      <div class="vsw hidden">
+        <button class="on" data-pv="cmp">仕入先の比較（まとめた商品）</button>
+        <button data-pv="raw">請求書の商品名ごと</button>
+        <span style="flex:1"></span>
+        <button id="linkBtn">まとめていない商品名 <b id="unlinkedN">0</b></button>
+      </div>
+
+      <div id="pv-cmp" class="hidden">
+        <div class="toolbar">
+          <input type="search" id="cmQ" placeholder="商品名・取引先で検索">
+          <select id="cmFilter">
+            <option value="">すべて</option>
+            <option value="notbest">最近の仕入れが最安ではなかった商品</option>
+            <option value="multi">仕入先が2社以上の商品</option>
+          </select>
+          <span class="count" id="cmCount"></span>
+        </div>
+        <div class="tablewrap"><table class="ledger">
+          <thead><tr><th>商品</th><th>比べる単位</th><th>最安の仕入先</th><th style="text-align:right">最安（円／単位）</th>
+            <th>ほかの仕入先</th><th>最近の仕入れ</th><th style="text-align:right">仕入先数</th></tr></thead>
+          <tbody id="cmBody"></tbody></table>
+          <div class="empty hidden" id="cmEmpty">まだまとめた商品がありません。右上の「まとめていない商品名」から、同じ商品を1つにまとめてください。</div></div>
+        <div class="sub" style="margin-top:8px">仕入先ごとの最新の単価を、比べる単位あたり・円換算で比べています。90日以上前の価格には「古い価格」と表示します。</div>
+      </div>
+
+      <div id="pv-raw">
+      <div class="toolbar">
+        <input type="search" id="prQ" placeholder="商品名・取引先で検索">
+        <select id="prSupplier"><option value="">取引先：すべて</option></select>
+        <select id="prFilter">
+          <option value="">すべての商品</option>
+          <option value="up">前回より値上がりした商品</option>
+          <option value="down">前回より値下がりした商品</option>
+        </select>
+        <select id="prSort">
+          <option value="date">最終仕入日の新しい順</option>
+          <option value="change">前回比の大きい順</option>
+          <option value="name">アルファベット順（A→Z）</option>
+          <option value="nameDesc">アルファベット順（Z→A）</option>
+          <option value="kana">あいうえお順（あ→ん）</option>
+          <option value="kanaDesc">あいうえお順（ん→あ）</option>
+        </select>
+        <button class="btn" id="prCsv">CSV出力</button>
+        <span class="count" id="prCount"></span>
+      </div>
+      <div class="tablewrap">
+        <table class="ledger">
+          <thead><tr>
+            <th class="sortable" data-sortfor="prSort" title="クリックで並べ替え">商品名 ⇅</th><th>最終仕入日</th><th>取引先</th>
+            <th style="text-align:right">最新単価</th><th style="text-align:right">円換算</th>
+            <th style="text-align:right">前回単価</th><th style="text-align:right">前回比</th>
+            <th style="text-align:right">最安（円）</th><th style="text-align:right">最高（円）</th><th style="text-align:right">仕入回数</th>
+          </tr></thead>
+          <tbody id="prBody"></tbody>
+        </table>
+        <div class="empty hidden" id="prEmpty">該当する商品はありません</div>
+      </div>
+      <div class="sub" style="margin-top:8px">台帳に登録した請求書の明細から自動で作ります（ここで請求書の内容は変わりません）。前回比は、同じ取引先・同じ通貨の前回の単価と比べています。円換算は上の為替レートで計算します。</div>
+      </div>
+    </section>
+    <!-- 販売価格（受注台帳の受注を読むだけ） -->
+    <section id="tab-sales" class="hidden">
+      <div class="toolbar">
+        <input type="search" id="spQ" placeholder="商品名・商品管理番号で検索">
+        <select id="spDays">
+          <option value="30">直近30日</option>
+          <option value="90" selected>直近90日</option>
+          <option value="180">直近180日</option>
+          <option value="365">直近1年</option>
+          <option value="0">すべての期間</option>
+        </select>
+        <select id="spSort">
+          <option value="qty">販売数の多い順</option>
+          <option value="date">最終受注日の新しい順</option>
+          <option value="spread">価格の幅が大きい順</option>
+          <option value="name">アルファベット順（A→Z）</option>
+          <option value="nameDesc">アルファベット順（Z→A）</option>
+          <option value="kana">あいうえお順（あ→ん）</option>
+          <option value="kanaDesc">あいうえお順（ん→あ）</option>
+        </select>
+        <button class="btn" id="spCsv">CSV出力</button>
+        <span class="count" id="spCount"></span>
+      </div>
+      <div class="tablewrap">
+        <table class="ledger">
+          <thead><tr>
+            <th class="sortable" data-sortfor="spSort" title="クリックで並べ替え">商品名 ⇅</th><th>商品管理番号</th><th>最終受注日</th>
+            <th style="text-align:right">最新の販売単価</th><th style="text-align:right">平均</th>
+            <th style="text-align:right">最安</th><th style="text-align:right">最高</th>
+            <th style="text-align:right">販売数</th><th style="text-align:right">医院数</th>
+          </tr></thead>
+          <tbody id="spBody"></tbody>
+        </table>
+        <div class="empty hidden" id="spEmpty">該当する商品はありません</div>
+      </div>
+      <div class="sub" style="margin-top:8px">受注台帳に取り込んだBカートの受注（キャンセル・単価0円を除く）から作ります。単価はBカートの「単価」欄の金額です。ここで受注のデータは変わりません。</div>
+    </section>
+
+    <!-- 粗利（仕入と販売を自分で紐づける） -->
+    <section id="tab-arari" class="hidden">
+      <div class="toolbar">
+        <button class="btn primary" id="arAdd">＋ 紐づけを追加</button>
+        <input type="search" id="arQ" placeholder="商品名・取引先で検索">
+        <select id="arDays">
+          <option value="30">販売：直近30日</option>
+          <option value="90" selected>販売：直近90日</option>
+          <option value="180">販売：直近180日</option>
+          <option value="365">販売：直近1年</option>
+          <option value="0">販売：すべての期間</option>
+        </select>
+        <select id="arSort">
+          <option value="rate">粗利率の低い順</option>
+          <option value="rateDesc">粗利率の高い順</option>
+          <option value="amount">粗利額の多い順</option>
+          <option value="name">アルファベット順（A→Z）</option>
+          <option value="kana">あいうえお順（あ→ん）</option>
+        </select>
+        <span class="cur sub">注意する粗利率 <input id="arWarn" value="20" style="width:52px;padding:5px 7px;border:1px solid var(--line);border-radius:5px;text-align:right">％未満</span>
+        <button class="btn" id="arCsv">CSV出力</button>
+        <span class="count" id="arCount"></span>
+      </div>
+      <div class="tablewrap"><table class="ledger">
+        <thead><tr>
+          <th class="sortable" data-sortfor="arSort" title="クリックで並べ替え">商品 ⇅</th><th>仕入（取引先）</th>
+          <th style="text-align:right">仕入単価</th><th style="text-align:right">販売単価（平均）</th><th style="text-align:right">最新の販売単価</th>
+          <th style="text-align:right">1個の粗利</th><th style="text-align:right">粗利率</th><th style="text-align:right">販売数</th><th style="text-align:right">粗利額</th><th>メモ</th><th></th>
+        </tr></thead>
+        <tbody id="arBody"></tbody></table>
+        <div class="empty hidden" id="arEmpty">まだ紐づけがありません。「＋ 紐づけを追加」から、仕入の商品と販売の商品を選んでください。</div></div>
+      <div class="sub" style="margin-top:8px">仕入単価は、その取引先の最新の請求書の単価を「仕入価格」タブの為替レートで円にしたもの（送料・関税は含みません）。販売単価は、受注台帳の受注（キャンセル・0円を除く）から計算しています。粗利率＝1個の粗利÷販売単価（平均）。</div>
+    </section>
+
+    <!-- 利益（販売データは受注台帳の受注を読むだけ） -->
+    <section id="tab-profit" class="hidden">
+      <div class="fx">
+        <b>比べ方</b>
+        <span class="cur">販売の期間 <select id="pfDays"><option value="30">直近30日</option><option value="90" selected>直近90日</option><option value="180">直近180日</option><option value="365">直近1年</option></select></span>
+        <span class="cur">仕入単価 <select id="pfCost"><option value="avg">平均（直近180日・数量で加重）</option><option value="last">直近の仕入</option><option value="best">最安の仕入先</option></select></span>
+        <span class="cur">注意する粗利率 <input id="pfWarn" value="20" style="width:56px">％未満</span>
+        <span class="sub">円換算は「仕入価格」タブの為替レートを使います。仕入単価に送料・関税は含みません。</span>
+      </div>
+      <div class="vsw">
+        <span style="flex:1"></span>
+        <button id="easyBtn" class="on">仕入と販売を結び付ける <b id="easyN">0</b></button>
+        <button id="sLinkBtn" class="hidden">まとめていない販売商品 <b id="sUnlinkedN">0</b></button>
+      </div>
+      <div class="toolbar">
+        <input type="search" id="pfQ" placeholder="商品名で検索">
+        <select id="pfFilter">
+          <option value="">すべて</option>
+          <option value="loss">仕入より安く売った注文がある商品</option>
+          <option value="low">粗利率が注意ライン未満の商品</option>
+        </select>
+        <select id="pfSort">
+          <option value="rate">粗利率の低い順</option>
+          <option value="amount">粗利額の多い順</option>
+          <option value="qty">販売数の多い順</option>
+        </select>
+        <button class="btn" id="pfCsv">CSV出力</button>
+        <span class="count" id="pfCount"></span>
+      </div>
+      <div class="tablewrap"><table class="ledger">
+        <thead><tr><th>商品</th><th>比べる単位</th><th style="text-align:right">仕入単価</th><th style="text-align:right">平均販売単価</th>
+          <th style="text-align:right">最安販売単価</th><th style="text-align:right">1単位の粗利</th><th style="text-align:right">粗利率</th>
+          <th style="text-align:right">販売数</th><th style="text-align:right">粗利額（期間）</th><th>状態</th></tr></thead>
+        <tbody id="pfBody"></tbody></table>
+        <div class="empty hidden" id="pfEmpty">表示できる商品がありません。右上の「仕入と販売を結び付ける」から、請求書の商品がBカートのどの商品かを選んでください。</div></div>
+      <div class="sub" style="margin-top:8px">販売単価は、受注台帳に取り込んだBカートの受注（キャンセル・単価0円を除く）から計算しています。ここで受注台帳や請求書のデータは変わりません。</div>
     </section>
   </main>
 </div>
 
+<!-- 詳細 -->
 <div id="modal" class="hidden"><div class="box" id="modalBox"></div></div>
-<div id="modal2" class="hidden"><div class="box" id="modal2Box"></div></div>
-<div id="printArea"></div>
 
 <script>
 // =========================================================
-// 設定（ほかの台帳と同じSupabaseプロジェクト。使う表は受注台帳専用）
+// 設定：Supabase の「Project Settings → API」の値を入れてください
 // =========================================================
 const SUPABASE_URL = "https://dunfssyisxywxfcblgdg.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1bmZzc3lpc3h5d3hmY2JsZ2RnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNjYwODEsImV4cCI6MjEwODY0MjA4MX0.pWqKvj7sLg9z3rjSGKqPPl7YLi-FFKDcuoFlDCLkZck";
-// 毎朝のLINE通知の機能（Edge Function）の名前。Supabaseで付いた名前と同じにしてください
-const LINE_FN = "juchu-line-alert";
-// アラームまでの日数
-const ALARM_DAYS = 14;
 // =========================================================
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+const norm = (s) => String(s ?? "").trim().toUpperCase().replace(/\s+/g, " ");
 const toNum = (v) => { if (v === "" || v == null) return null; const n = Number(String(v).replace(/,/g, "")); return isNaN(n) ? null : n; };
-const fmtN = (n, d = 0) => n == null ? "" : Number(n).toLocaleString("ja-JP", { maximumFractionDigits: d });
-const normA = (s) => String(s ?? "").toUpperCase().replace(/[\s　]+/g, "");
-const todayJST = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
-const addDays = (ymd, n) => { const d = new Date(ymd + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
-const md = (ymd) => ymd ? `${Number(ymd.slice(5, 7))}/${Number(ymd.slice(8, 10))}` : "";
+const fmt = (n, d = 2) => n == null ? "" : Number(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+const fmtQty = (n) => n == null ? "" : Number(n).toLocaleString("en-US", { maximumFractionDigits: 3 });
 
-// ---------- CSV ----------
-function parseCsv(text) {
-  const rows = []; let row = [], f = "", q = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (q) {
-      if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; }
-      else f += c;
-    } else if (c === '"') q = true;
-    else if (c === ",") { row.push(f); f = ""; }
-    else if (c === "\n" || c === "\r") {
-      if (c === "\r" && text[i + 1] === "\n") i++;
-      row.push(f); f = ""; if (row.some(x => x !== "")) rows.push(row); row = [];
-    } else f += c;
-  }
-  if (f !== "" || row.length) { row.push(f); if (row.some(x => x !== "")) rows.push(row); }
-  return rows;
-}
-const REQUIRED = ["受注ID", "受注内連番", "商品名", "受注日時", "受注数"];
-function csvToOrders(rows) {
-  const h = rows[0].map(x => x.replace(/^﻿/, "").trim());
-  const miss = REQUIRED.filter(k => !h.includes(k));
-  if (miss.length) throw new Error("Bカートの受注CSVではないようです（見つからない列：" + miss.join("、") + "）");
-  const g = (r, k) => { const i = h.indexOf(k); return i < 0 ? "" : String(r[i] ?? "").trim(); };
-  const d = (s) => /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : null;
-  const out = []; let shipping = 0, skipped = 0;
-  rows.slice(1).forEach(r => {
-    const kind = g(r, "明細区分"), name = g(r, "商品名");
-    if ((kind && kind !== "商品") || (!kind && name === "送料")) { shipping++; return; }
-    const order_id = g(r, "受注ID"), at = g(r, "受注日時");
-    if (!order_id || !name || !d(at)) { skipped++; return; }
-    out.push({
-      order_id, line_seq: g(r, "受注内連番") || "0", order_no: g(r, "受注番号") || null,
-      ordered_at: at.replace(" ", "T") + "+09:00", order_date: at.slice(0, 10),
-      order_status: g(r, "対応状況") || null, ship_status: g(r, "発送状況") || null,
-      ship_id: g(r, "Bカート発送ID") || null, ship_date: d(g(r, "発送日")), delivery_date: d(g(r, "納品日")),
-      desired_date: d(g(r, "配送希望日")), tracking: g(r, "送り状番号") || null,
-      customer: g(r, "会社名") || null, person: g(r, "担当者") || null, pref: g(r, "都道府県") || null,
-      dest_company: g(r, "配送先 会社名") || null,
-      dest_dept: g(r, "配送先 部署名") || null,
-      dest_person2: g(r, "配送先 担当者") || null,
-      dest_zip: g(r, "配送先 郵便番号") || g(r, "郵便番号") || null,
-      dest_address: (g(r, "配送先 住所") ? (g(r, "配送先 都道府県") + g(r, "配送先 住所")) : (g(r, "都道府県") + g(r, "住所"))) || null,
-      dest_phone: g(r, "配送先 電話番号") || g(r, "電話番号") || null,
-      desired_time: g(r, "配送希望時間") || null,
-      ship_memo: g(r, "発送メモ") || null,
-      remarks: [g(r, "備考"), g(r, "連絡事項")].filter(Boolean).join(" / ") || null,
-      product_code: g(r, "商品管理番号") || g(r, "品番") || null, product_name: name.replace(/\s+/g, " "),
-      qty: toNum(g(r, "受注数")), irisu: toNum(g(r, "入数")), unit: g(r, "単位") || null,
-      unit_price: toNum(g(r, "単価")), subtotal: toNum(g(r, "小計")),
-      lead_time: g(r, "納期目安(注文日～）") || null, bcart_memo: g(r, "メモ") || null, payment_method: g(r, "決済方法") || null,
-    });
-  });
-  const map = new Map(); out.forEach(x => map.set(x.order_id + "|" + x.line_seq, x));
-  return { records: [...map.values()], shipping, skipped };
-}
-
-// ---------- 判定 ----------
-let ROWS = [], FOLLOW = {}, INST = [], TODAY = todayJST();
-const instOf = (r) => INST.filter(x => x.order_id === r.order_id && (x.lines || []).some(l => l.line_seq === r.line_seq))
-  .sort((a, b) => b.created_at.localeCompare(a.created_at));
-const keyOf = (r) => r.order_id + "|" + r.line_seq;
-const pieces = (r) => (r.qty ?? 0) * (r.irisu && r.irisu > 0 ? r.irisu : 1);
-const prodKey = (r) => r.product_code ? "C:" + normA(r.product_code) : "N:" + normA(r.product_name);
-const ageOf = (r) => r.order_date ? Math.round((Date.parse(TODAY) - Date.parse(r.order_date)) / 86400000) : 0;
-const isOpen = (r) => r.ship_status !== "発送済" && r.order_status !== "キャンセル";
-const isLate = (r) => isOpen(r) && ageOf(r) >= ALARM_DAYS;
-function isSnoozed(r) {
-  const f = FOLLOW[keyOf(r)];
-  return !!f && (f.snooze_mode === "shipped" || (f.snooze_mode === "until" && f.snooze_until && f.snooze_until >= TODAY));
-}
-const isAlarm = (r) => isLate(r) && !isSnoozed(r);
-// 経過日数 → 色の段階（14〜20日：2週間／21〜27日：3週間／28〜34日：4週間／35日〜：5週間以上）
-const tierOf = (days) => days >= 35 ? "w5" : days >= 28 ? "w4" : days >= 21 ? "w3" : days >= 14 ? "w2" : "";
-const TIER_LABEL = { w2: "2週間", w3: "3週間", w4: "4週間", w5: "5週間以上" };
-const LEGEND = `<span class="legend">経過：${["w2", "w3", "w4", "w5"].map(t => `<span class="tag ${t}">${TIER_LABEL[t]}</span>`).join("")}</span>`;
-function followLabel(r) {
-  const ins = instOf(r)[0];
-  const insTag = ins ? `<span class="tag done">指示書No.${ins.inst_no} ${md(ins.created_at.slice(0, 10))}発行</span> ` : "";
-  const f = FOLLOW[keyOf(r)]; if (!f) return insTag;
-  const stop = f.snooze_mode === "shipped" ? "発送まで停止" : (f.snooze_mode === "until" && f.snooze_until ? (f.snooze_until >= TODAY ? `${md(f.snooze_until)}まで停止` : `${md(f.snooze_until)}で停止終了`) : "");
-  return `${insTag}${esc(f.note ?? "")}${stop ? ` <span class="tag snz">${stop}</span>` : ""}`;
-}
-function rowClass(r) { return isAlarm(r) ? tierOf(ageOf(r)) : (isLate(r) && isSnoozed(r) ? "snz" : ""); }
-function statusTag(r) {
-  if (r.order_status === "キャンセル") return `<span class="tag cancel">キャンセル</span>`;
-  if (r.ship_status === "発送済") return `<span class="tag done">発送済</span>`;
-  if (isAlarm(r)) return `<span class="tag ${tierOf(ageOf(r))}">${ageOf(r)}日経過</span>`;
-  if (isLate(r)) return `<span class="tag snz">対応中</span>`;
-  return `<span class="tag open">未発送</span>`;
-}
-
-// ---------- 読み込み ----------
-async function fetchAll(table, select, order) {
-  const out = []; const size = 1000;
-  for (let from = 0; ; from += size) {
-    let q = sb.from(table).select(select).range(from, from + size - 1);
-    if (order) q = q.order(order, { ascending: false });
-    const { data, error } = await q;
-    if (error) throw error;
-    out.push(...data);
-    if (data.length < size) break;
-  }
-  return out;
-}
-async function loadAll() {
-  $("#pCount").innerHTML = '<span class="spinner"></span>読み込み中…';
-  try {
-    const [rows, fol, ins] = await Promise.all([fetchAll("bcart_orders", "*", "ordered_at"), fetchAll("order_followups", "*"),
-      fetchAll("ship_instructions", "*", "created_at").catch(() => [])]);
-    ROWS = rows; FOLLOW = {}; fol.forEach(f => FOLLOW[f.order_id + "|" + f.line_seq] = f);
-    INST = ins;
-  } catch (e) { $("#pCount").textContent = ""; alert("読み込みに失敗しました：" + e.message); return; }
-  TODAY = todayJST();
-  drawAll(); loadHistory(); notifyPC();
-}
-function drawAll() { $("#pLegend").innerHTML = LEGEND; $("#oLegend").innerHTML = LEGEND; drawAlarmBar(); drawProducts(); drawOpen(); drawList(); drawInst(); }
-
-// ---------- アラームの帯・パソコン通知 ----------
-function counts() {
-  const late = ROWS.filter(isLate), alarm = late.filter(r => !isSnoozed(r));
-  return { late: late.length, alarm: alarm.length, snz: late.length - alarm.length };
-}
-function drawAlarmBar() {
-  const c = counts(), bar = $("#alarmBar");
-  bar.classList.remove("hidden", "on", "off");
-  const perm = ("Notification" in window) ? Notification.permission : "unsupported";
-  const pcBtn = perm === "default" ? `<button class="btn small" id="pcOn">パソコン通知をオンにする</button>` : "";
-  if (!ROWS.length) { bar.classList.add("hidden"); return; }
-  if (c.alarm) {
-    bar.classList.add("on");
-    bar.innerHTML = `<span class="big">⚠ 受注から2週間以上たった未発送：${c.alarm}件</span>
-      <span>${c.snz ? `（ほかに対応メモで停止中 ${c.snz}件）` : ""}</span><span class="sp"></span>${pcBtn}
-      <button class="btn small primary" id="goOpen">一覧を見る</button>`;
-  } else {
-    bar.classList.add("off");
-    bar.innerHTML = `<span class="big">✓ 2週間以上たった未発送（対応待ち）はありません</span>
-      <span>${c.snz ? `（対応メモで停止中 ${c.snz}件）` : ""}</span><span class="sp"></span>${pcBtn}`;
-  }
-  const nb = $("#navBadge"); nb.textContent = c.alarm; nb.classList.toggle("hidden", !c.alarm);
-  document.title = c.alarm ? `(${c.alarm}) 受注台帳` : "受注台帳";
-  if ($("#goOpen")) $("#goOpen").onclick = () => { $("#oFilter").value = "alarm"; switchTab("open"); };
-  if ($("#pcOn")) $("#pcOn").onclick = async () => { await Notification.requestPermission(); drawAlarmBar(); notifyPC(true); };
-}
-function notifyPC(force) {
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
-  const c = counts(); if (!c.alarm) return;
-  let last = null; try { last = localStorage.getItem("juchu_notified"); } catch (_) {}
-  if (!force && last === TODAY) return;
-  try {
-    const n = new Notification("受注台帳", { body: `受注から2週間以上たった未発送が ${c.alarm} 件あります`, tag: "juchu-alarm" });
-    n.onclick = () => { window.focus(); $("#oFilter").value = "alarm"; switchTab("open"); };
-    try { localStorage.setItem("juchu_notified", TODAY); } catch (_) {}
-  } catch (_) {}
-}
-// 開いたままでも、日付が変わったら判定し直す（1時間ごと）
-setInterval(() => { if (!ROWS.length) return; const t = todayJST(); if (t !== TODAY) { TODAY = t; drawAll(); notifyPC(); } }, 3600000);
-
-// ---------- 商品別 ----------
-let AGG = [];
-["pq", "pFilter", "pSort"].forEach(id => $("#" + id).addEventListener("input", drawProducts));
-function aggregate() {
-  const map = new Map(), since30 = addDays(TODAY, -29);
-  ROWS.forEach(r => {
-    const k = prodKey(r);
-    let p = map.get(k);
-    if (!p) { p = { key: k, code: r.product_code, name: r.product_name, last: "", openQty: 0, openLines: 0, lateLines: 0, alarmLines: 0, oldest: null, recentQty: 0, totalQty: 0, rows: [] }; map.set(k, p); }
-    if ((r.order_date || "") >= p.last) { p.last = r.order_date || ""; p.name = r.product_name; }
-    if (r.order_status !== "キャンセル") { p.totalQty += pieces(r); if ((r.order_date || "") >= since30) p.recentQty += pieces(r); }
-    if (isAlarm(r) && (!p.oldestAlarm || r.order_date < p.oldestAlarm)) p.oldestAlarm = r.order_date;
-    if (isOpen(r)) {
-      p.openQty += pieces(r); p.openLines++;
-      if (!p.oldest || r.order_date < p.oldest) p.oldest = r.order_date;
-      if (isLate(r)) p.lateLines++;
-      if (isAlarm(r)) p.alarmLines++;
-    }
-    p.rows.push(r);
-  });
-  return [...map.values()];
-}
-function drawProducts() {
-  AGG = aggregate();
-  const q = normA($("#pq").value), fl = $("#pFilter").value, sort = $("#pSort").value;
-  let list = AGG.filter(p => (!q || normA(p.name + " " + (p.code || "")).includes(q)) &&
-    (fl === "late" ? p.lateLines > 0 : fl === "open" ? p.openLines > 0 : true));
-  const by = {
-    late: (a, b) => b.alarmLines - a.alarmLines || b.lateLines - a.lateLines || b.openQty - a.openQty,
-    openQty: (a, b) => b.openQty - a.openQty, recent: (a, b) => b.recentQty - a.recentQty,
-    name: (a, b) => a.name.localeCompare(b.name, "ja"),
-  };
-  list.sort(by[sort]);
-  $("#pCount").textContent = `${list.length} 商品`;
-  $("#pEmpty").classList.toggle("hidden", list.length > 0 || !ROWS.length);
-  if (!ROWS.length) { $("#pTable").innerHTML = ""; $("#pEmpty").classList.remove("hidden"); $("#pEmpty").textContent = "まだ受注データがありません。「CSV取込」タブからBカートの受注CSVを取り込んでください。"; return; }
-  $("#pEmpty").textContent = "該当する商品はありません";
-  $("#pTable").innerHTML = `
-    <thead><tr><th>商品名</th><th>商品管理番号</th><th class="num">2週間以上（対応待ち）</th><th class="num">未発送の注文</th><th class="num">未発送の数量</th>
-      <th>いちばん古い未発送</th><th class="num">直近30日の受注数</th><th class="num">受注数の合計</th><th>最終受注日</th></tr></thead>
-    <tbody>${list.map(p => {
-      const oldAge = p.oldest ? Math.round((Date.parse(TODAY) - Date.parse(p.oldest)) / 86400000) : null;
-      const tier = p.oldestAlarm ? tierOf(Math.round((Date.parse(TODAY) - Date.parse(p.oldestAlarm)) / 86400000)) : "";
-      return `<tr class="click ${tier}" data-k="${esc(p.key)}">
-      <td class="ell" title="${esc(p.name)}">${esc(p.name)}</td><td class="mono">${esc(p.code ?? "")}</td>
-      <td class="num">${p.alarmLines ? `<span class="tag ${tier}">${p.alarmLines}件</span>` : (p.lateLines ? `<span class="tag snz">対応中 ${p.lateLines}</span>` : `<span class="sub">0</span>`)}</td>
-      <td class="num ${p.openLines ? "" : "zero"}">${fmtN(p.openLines)}</td><td class="num ${p.openQty ? "" : "zero"}">${fmtN(p.openQty)}</td>
-      <td class="mono age">${p.oldest ? `${esc(p.oldest)}（${oldAge}日）` : ""}</td>
-      <td class="num">${fmtN(p.recentQty)}</td><td class="num">${fmtN(p.totalQty)}</td><td class="mono">${esc(p.last)}</td></tr>`;
-    }).join("")}</tbody>`;
-  document.querySelectorAll("#pTable tbody tr").forEach(tr => tr.onclick = () => openProduct(tr.dataset.k));
-}
-
-function openLineRow(r, withProduct) {
-  return `<tr class="${rowClass(r)}">
-    <td class="mono">${esc(r.order_date ?? "")}</td><td class="num age">${ageOf(r)}日</td>
-    ${withProduct ? `<td class="ell" title="${esc(r.product_name)}">${esc(r.product_name)}</td>` : ""}
-    <td class="num">${fmtN(pieces(r))}</td><td class="ell" title="${esc(r.customer ?? "")}">${esc(r.customer || r.dest_company || "")}</td>
-    <td>${esc(r.order_status ?? "")}</td><td>${esc(r.lead_time ?? "")}</td>
-    <td class="wrap">${followLabel(r)}</td>
-    <td><button class="btn small" data-fu="${esc(keyOf(r))}">対応メモ</button></td></tr>`;
-}
-let CURRENT_PRODUCT = null;
-function openProduct(key) {
-  const p = AGG.find(x => x.key === key); if (!p) return;
-  CURRENT_PRODUCT = key;
-  const open = p.rows.filter(isOpen).sort((a, b) => (a.order_date || "").localeCompare(b.order_date || ""));
-  const done = p.rows.filter(r => !isOpen(r)).sort((a, b) => (b.order_date || "").localeCompare(a.order_date || "")).slice(0, 100);
-  $("#modalBox").innerHTML = `
-    <h3>${esc(p.name)}</h3>
-    <div class="meta">${p.code ? "商品管理番号 " + esc(p.code) + "　/　" : ""}最終受注日 ${esc(p.last)}</div>
-    <div class="kpis">
-      <div class="kpi ${p.alarmLines ? "bad" : ""}"><div class="l">2週間以上（対応待ち）</div><div class="v">${p.alarmLines}件</div></div>
-      <div class="kpi"><div class="l">未発送の注文 ／ 数量</div><div class="v">${p.openLines}件 ／ ${fmtN(p.openQty)}</div></div>
-      <div class="kpi"><div class="l">直近30日の受注数</div><div class="v">${fmtN(p.recentQty)}</div></div>
-      <div class="kpi"><div class="l">受注数の合計</div><div class="v">${fmtN(p.totalQty)}</div></div>
-    </div>
-    <div class="sec"><h4>未発送（古い順）</h4>
-      ${open.length ? `<div class="tablewrap"><table class="ledger"><thead><tr><th>受注日</th><th class="num">経過</th><th class="num">数量</th><th>医院名</th><th>対応状況</th><th>納期目安</th><th>対応メモ</th><th></th></tr></thead>
-        <tbody>${open.map(r => openLineRow(r, false)).join("")}</tbody></table></div>` : `<div class="alert ok">未発送はありません</div>`}
-    </div>
-    <div class="sec"><h4>発送済み・キャンセル（新しい順・最大100件）</h4>
-      <div class="tablewrap" style="max-height:320px"><table class="ledger"><thead><tr><th>受注日</th><th class="num">数量</th><th>医院名</th><th>状態</th><th>発送日</th><th>送り状番号</th></tr></thead>
-        <tbody>${done.map(r => `<tr><td class="mono">${esc(r.order_date ?? "")}</td><td class="num">${fmtN(pieces(r))}</td><td>${esc(r.customer || r.dest_company || "")}</td>
-          <td>${statusTag(r)}</td><td class="mono">${esc(r.ship_date ?? "")}</td><td class="ell">${esc(r.tracking ?? "")}</td></tr>`).join("")}</tbody></table></div>
-    </div>
-    <div class="actions"><button class="btn" id="mClose">閉じる</button></div>`;
-  $("#modal").classList.remove("hidden");
-  $("#mClose").onclick = closeModal;
-  bindFollowButtons($("#modalBox"));
-}
-function closeModal() { $("#modal").classList.add("hidden"); CURRENT_PRODUCT = null; }
-$("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
-
-// ---------- 対応メモ・アラーム停止 ----------
-function bindFollowButtons(root) { root.querySelectorAll("[data-fu]").forEach(b => b.onclick = (e) => { e.stopPropagation(); openFollow(b.dataset.fu); }); }
-function openFollow(k) {
-  const r = ROWS.find(x => keyOf(x) === k); if (!r) return;
-  const f = FOLLOW[k] || {};
-  const mode = f.snooze_mode || "";
-  const until = f.snooze_until || addDays(TODAY, 7);
-  $("#modal2Box").innerHTML = `
-    <h3>対応メモ</h3>
-    <div class="meta">${esc(r.order_date)}（${ageOf(r)}日経過）　${esc(r.customer || r.dest_company || "")}<br>${esc(r.product_name)}　${fmtN(pieces(r))}${esc(r.unit ?? "")}　／　受注番号 ${esc(r.order_no ?? "")}</div>
-    <div class="f"><label>メモ（例：入荷待ち・12月上旬予定／先方都合で保留／キャンセル漏れ）</label><textarea id="fuNote" rows="3">${esc(f.note ?? "")}</textarea></div>
-    <div class="f"><label>アラーム</label>
-      <div class="radio">
-        <label><input type="radio" name="fuMode" value="" ${!mode ? "checked" : ""}>止めない（メモだけ残す）</label>
-        <label><input type="radio" name="fuMode" value="until" ${mode === "until" ? "checked" : ""}>この日まで止める <input type="date" id="fuUntil" value="${esc(until)}"></label>
-        <label><input type="radio" name="fuMode" value="shipped" ${mode === "shipped" ? "checked" : ""}>発送されるまで止める</label>
-      </div>
-    </div>
-    <div class="f"><label>出荷指示書</label>
-      <div class="sub">在庫はあるのに出荷されていない場合などに、倉庫・出荷担当へ渡す指示書（A4）を発行します。</div>
-      ${instOf(r).map(x => `<div style="display:flex;gap:8px;align-items:center;margin-top:6px;font-size:13px"><span class="tag done">No.${x.inst_no}</span>
-        ${new Date(x.created_at).toLocaleString("ja-JP")} 発行（${(x.lines || []).length}品目）<button class="btn small" data-reprint="${x.id}">再印刷</button></div>`).join("")}
-      <div class="actions" style="justify-content:flex-start;margin-top:8px"><button class="btn primary" id="fuInst">出荷指示書を発行する</button></div>
-    </div>
-    <div class="actions">
-      ${FOLLOW[k] ? `<button class="btn danger" id="fuDel">メモを消す</button>` : ""}<span style="flex:1"></span>
-      <button class="btn" id="fuCancel">閉じる</button><button class="btn primary" id="fuSave">保存</button>
-    </div>`;
-  $("#modal2").classList.remove("hidden");
-  $("#fuCancel").onclick = () => $("#modal2").classList.add("hidden");
-  $("#fuInst").onclick = () => openInstruction(r);
-  $("#modal2Box").querySelectorAll("[data-reprint]").forEach(b => b.onclick = () => printInstruction(INST.find(x => x.id === b.dataset.reprint)));
-  $("#fuUntil").onfocus = () => { document.querySelector('input[name=fuMode][value=until]').checked = true; };
-  $("#fuSave").onclick = async () => {
-    const m = document.querySelector("input[name=fuMode]:checked").value || null;
-    const rec = { order_id: r.order_id, line_seq: r.line_seq, note: $("#fuNote").value.trim() || null,
-      snooze_mode: m, snooze_until: m === "until" ? ($("#fuUntil").value || null) : null, updated_at: new Date().toISOString() };
-    if (m === "until" && !rec.snooze_until) { alert("止める日付を入れてください"); return; }
-    const { data, error } = await sb.from("order_followups").upsert(rec, { onConflict: "order_id,line_seq" }).select().single();
-    if (error) { alert("保存に失敗しました：" + error.message); return; }
-    FOLLOW[k] = data; afterFollowChange();
-  };
-  if ($("#fuDel")) $("#fuDel").onclick = async () => {
-    if (!confirm("この対応メモを消しますか？（アラームも再開します）")) return;
-    const { error } = await sb.from("order_followups").delete().eq("order_id", r.order_id).eq("line_seq", r.line_seq);
-    if (error) { alert("削除に失敗しました：" + error.message); return; }
-    delete FOLLOW[k]; afterFollowChange();
-  };
-}
-function afterFollowChange() {
-  $("#modal2").classList.add("hidden");
-  const cp = CURRENT_PRODUCT;
-  drawAll();
-  if (cp && !$("#modal").classList.contains("hidden")) openProduct(cp);
-}
-$("#modal2").addEventListener("click", e => { if (e.target.id === "modal2") $("#modal2").classList.add("hidden"); });
-
-// ---------- 出荷指示書 ----------
-function openInstruction(r) {
-  const lines = ROWS.filter(x => x.order_id === r.order_id && isOpen(x)).sort((a, b) => Number(a.line_seq) - Number(b.line_seq));
-  const d = r;
-  $("#modal2Box").innerHTML = `
-    <h3>出荷指示書を発行</h3>
-    <div class="meta">受注番号 ${esc(r.order_no ?? "")}（受注日 ${esc(r.order_date)}）　${esc(r.customer || "")}</div>
-    <div class="f"><label>出荷する商品（この受注の未発送 ${lines.length}品目）</label>
-      <div class="popt">${lines.map(x => `<label><input type="checkbox" class="il" value="${esc(x.line_seq)}" ${x.line_seq === r.line_seq || lines.length <= 10 ? "checked" : ""}>
-        <span>${esc(x.product_name)}　<b>${fmtN(pieces(x))}${esc(x.unit ?? "")}</b>　<span class="sub">（${ageOf(x)}日経過）</span></span></label>`).join("")}</div></div>
-    <div class="f"><label>お届け先</label>
-      <div style="font-size:13px;line-height:1.6">〒${esc(d.dest_zip ?? "")}　${esc(d.dest_address ?? "")}<br>${esc(d.dest_company || d.customer || "")} ${esc(d.dest_dept ?? "")} ${esc(d.dest_person2 || d.person || "")} 様　TEL ${esc(d.dest_phone ?? "")}</div>
-      ${d.dest_address ? "" : `<div class="alert warn">住所が入っていません。受注CSVをもう一度取り込むと、住所・電話番号が入ります。</div>`}
-    </div>
-    <div class="f"><label>出荷予定日</label><input type="date" id="inDate" value="${esc(TODAY)}" style="width:auto"></div>
-    <div class="f"><label>指示メモ（例：在庫あり・本日中に発送／クール便で）</label><textarea id="inNote" rows="2"></textarea></div>
-    <div class="f"><div class="popt"><label><input type="checkbox" id="inSnz" checked>アラームを「発送されるまで止める」にする</label></div></div>
-    <div class="actions"><button class="btn" id="inCancel">戻る</button><button class="btn primary" id="inGo">発行して印刷</button></div>`;
-  $("#inCancel").onclick = () => openFollow(keyOf(r));
-  $("#inGo").onclick = async (e) => {
-    const sel = [...document.querySelectorAll(".il:checked")].map(x => x.value);
-    if (!sel.length) { alert("出荷する商品を1つ以上選んでください"); return; }
-    const picked = lines.filter(x => sel.includes(x.line_seq));
-    const btn = e.target; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>発行中…';
-    const rec = {
-      order_id: r.order_id, order_no: r.order_no, customer: r.customer, plan_date: $("#inDate").value || null,
-      dest: { zip: d.dest_zip, address: d.dest_address, company: d.dest_company || d.customer, dept: d.dest_dept, person: d.dest_person2 || d.person,
-              phone: d.dest_phone, desired_date: d.desired_date, desired_time: d.desired_time, ship_memo: d.ship_memo, remarks: d.remarks, order_date: d.order_date },
-      lines: picked.map(x => ({ line_seq: x.line_seq, code: x.product_code, name: x.product_name, qty: pieces(x), unit: x.unit, order_date: x.order_date })),
-      note: $("#inNote").value.trim() || null,
-    };
-    const { data, error } = await sb.from("ship_instructions").insert(rec).select().single();
-    if (error) { alert("発行に失敗しました：" + error.message); btn.disabled = false; btn.textContent = "発行して印刷"; return; }
-    INST.unshift(data);
-    if ($("#inSnz").checked) {
-      const ups = picked.map(x => { const f = FOLLOW[keyOf(x)] || {};
-        return { order_id: x.order_id, line_seq: x.line_seq, note: f.note || `出荷指示書No.${data.inst_no}を発行`, snooze_mode: "shipped", snooze_until: null, updated_at: new Date().toISOString() }; });
-      const { data: fd } = await sb.from("order_followups").upsert(ups, { onConflict: "order_id,line_seq" }).select();
-      (fd || []).forEach(f => FOLLOW[f.order_id + "|" + f.line_seq] = f);
-    }
-    $("#modal2").classList.add("hidden");
-    afterFollowChange();
-    printInstruction(data);
-  };
-}
-function printInstruction(x) {
-  if (!x) return;
-  const d = x.dest || {};
-  const issued = new Date(x.created_at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
-  $("#printArea").innerHTML = `
-    <div class="inst">
-      <div class="ihead"><h1>出荷指示書</h1><div class="ino">No. ${x.inst_no}</div></div>
-      <table class="ikv">
-        <tr><th>発行日時</th><td>${esc(issued)}</td><th>出荷予定日</th><td><b>${esc(x.plan_date ?? "")}</b></td></tr>
-        <tr><th>受注番号</th><td>${esc(x.order_no ?? "")}</td><th>受注日</th><td>${esc(d.order_date ?? "")}</td></tr>
-        <tr><th>注文者</th><td colspan="3">${esc(x.customer ?? "")}</td></tr>
-      </table>
-      <div class="ibox"><div class="ilbl">お届け先</div>
-        <div class="iaddr">〒${esc(d.zip ?? "")}　${esc(d.address ?? "")}<br><b>${esc(d.company ?? "")} ${esc(d.dept ?? "")}</b>　${esc(d.person ?? "")} 様<br>TEL ${esc(d.phone ?? "")}</div>
-        ${d.desired_date || d.desired_time ? `<div>配送希望：${esc(d.desired_date ?? "")} ${esc(d.desired_time ?? "")}</div>` : ""}
-      </div>
-      <table class="ilines">
-        <thead><tr><th style="width:5%">No</th><th style="width:12%">商品管理番号</th><th>商品名</th><th style="width:10%" class="n">数量</th><th style="width:8%">確認</th><th style="width:14%">ロット番号</th><th style="width:12%">使用期限</th></tr></thead>
-        <tbody>${(x.lines || []).map((l, i) => `<tr><td>${i + 1}</td><td>${esc(l.code ?? "")}</td><td>${esc(l.name)}</td><td class="n"><b>${fmtN(l.qty)}</b> ${esc(l.unit ?? "")}</td>
-          <td><span class="chk"></span></td><td></td><td></td></tr>`).join("")}</tbody>
-      </table>
-      ${x.note ? `<div class="ibox"><div class="ilbl">指示メモ</div>${esc(x.note)}</div>` : ""}
-      ${d.ship_memo || d.remarks ? `<div class="ibox"><div class="ilbl">Bカートの発送メモ・備考</div>${esc([d.ship_memo, d.remarks].filter(Boolean).join(" / "))}</div>` : ""}
-      <table class="isign"><tr><th>指示者</th><th>ピッキング</th><th>梱包</th><th>出荷</th></tr><tr><td></td><td></td><td></td><td></td></tr></table>
-      <div class="ifoot">送り状番号：＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿　　出荷日：＿＿＿＿／＿＿</div>
-    </div>`;
-  setPage(false);
-  setTimeout(() => window.print(), 50);
-}
-
-// ---------- 出荷指示書の一覧 ----------
-["iq", "iFilter", "iMonth"].forEach(id => $("#" + id).addEventListener("input", drawInst));
-function instState(x) {
-  const rows = (x.lines || []).map(l => ROWS.find(r => r.order_id === x.order_id && r.line_seq === l.line_seq)).filter(Boolean);
-  const shipped = rows.filter(r => r.ship_status === "発送済");
-  const cancel = rows.filter(r => r.order_status === "キャンセル");
-  const total = (x.lines || []).length;
-  const lastShip = shipped.map(r => r.ship_date || "").sort().pop() || "";
-  if (total && shipped.length + cancel.length >= total && shipped.length) return { k: "done", label: `発送済${lastShip ? "（" + md(lastShip) + "）" : ""}`, cls: "done" };
-  if (total && cancel.length >= total) return { k: "done", label: "キャンセル", cls: "cancel" };
-  const late = x.plan_date && x.plan_date < TODAY;
-  if (shipped.length) return { k: late ? "late" : "open", label: `一部発送（${shipped.length}/${total}）`, cls: late ? "w5" : "open" };
-  return { k: late ? "late" : "open", label: late ? `未発送（予定日から${Math.round((Date.parse(TODAY) - Date.parse(x.plan_date)) / 86400000)}日）` : "未発送", cls: late ? "w5" : "open" };
-}
-function drawInst() {
-  const q = normA($("#iq").value), fl = $("#iFilter").value, m = $("#iMonth").value;
-  const list = INST.map(x => ({ x, st: instState(x) })).filter(({ x, st }) =>
-    (!fl || (fl === "open" ? st.k !== "done" : st.k === fl)) &&
-    (!m || (x.created_at || "").startsWith(m)) &&
-    (!q || normA(["No" + x.inst_no, x.inst_no, x.customer, x.order_no, x.note, ...(x.lines || []).map(l => l.name)].join(" ")).includes(q)))
-    .sort((a, b) => b.x.inst_no - a.x.inst_no);
-  const lateN = INST.filter(x => instState(x).k === "late").length;
-  $("#iCount").textContent = `${list.length} 件${lateN ? `　／　予定日を過ぎて未発送 ${lateN} 件` : ""}`;
-  $("#iEmpty").classList.toggle("hidden", list.length > 0);
-  $("#iBody").innerHTML = list.map(({ x, st }) => {
-    const ls = x.lines || [];
-    return `<tr class="${st.k === "late" ? "w5" : ""}">
-    <td class="mono"><b>No.${x.inst_no}</b></td><td class="mono">${new Date(x.created_at).toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" }).slice(0, -3)}</td>
-    <td class="mono age">${esc(x.plan_date ?? "")}</td><td class="ell">${esc(x.customer ?? "")}</td>
-    <td class="ell" title="${esc(ls.map(l => l.name + " " + l.qty).join(" / "))}">${esc(ls[0] ? ls[0].name : "")}${ls.length > 1 ? ` 他${ls.length - 1}件` : ""}</td>
-    <td class="num">${ls.length}</td><td><span class="tag ${st.cls}">${esc(st.label)}</span></td>
-    <td class="ell">${esc(x.note ?? "")}</td><td class="mono">${esc(x.order_no ?? "")}</td>
-    <td><button class="btn small" data-rp="${x.id}">再印刷</button> <button class="btn small danger" data-idel="${x.id}">取り消す</button></td></tr>`;
-  }).join("");
-  $("#iBody").querySelectorAll("[data-rp]").forEach(b => b.onclick = () => printInstruction(INST.find(x => x.id === b.dataset.rp)));
-  $("#iBody").querySelectorAll("[data-idel]").forEach(b => b.onclick = async () => {
-    const x = INST.find(y => y.id === b.dataset.idel); if (!x) return;
-    if (!confirm(`出荷指示書 No.${x.inst_no}（${x.customer ?? ""}）を取り消します。\n一覧から削除されます（対応メモとアラームの停止はそのまま残ります）。よろしいですか？`)) return;
-    const { error } = await sb.from("ship_instructions").delete().eq("id", x.id);
-    if (error) { alert("取り消しに失敗しました：" + error.message); return; }
-    INST = INST.filter(y => y.id !== x.id); drawAll();
-  });
-}
-
-// ---------- 未発送一覧 ----------
-["oq", "oFilter"].forEach(id => $("#" + id).addEventListener("input", drawOpen));
-function drawOpen() {
-  const q = normA($("#oq").value), fl = $("#oFilter").value;
-  const list = ROWS.filter(r => isOpen(r) &&
-    (fl === "alarm" ? isAlarm(r) : fl === "late" ? isLate(r) : fl === "snz" ? isSnoozed(r) : true) &&
-    (!q || normA([r.product_name, r.product_code, r.customer, r.dest_company, r.order_no].join(" ")).includes(q)))
-    .sort((a, b) => (a.order_date || "").localeCompare(b.order_date || ""));
-  $("#oCount").textContent = `${list.length} 件　／　数量 ${fmtN(list.reduce((a, r) => a + pieces(r), 0))}`;
-  $("#oEmpty").classList.toggle("hidden", list.length > 0);
-  $("#oBody").innerHTML = list.map(r => openLineRow(r, true)).join("");
-  bindFollowButtons($("#oBody"));
-}
-
-// ---------- 印刷（A4・色別） ----------
-const PRINT_COLORS = { w2: "--w2", w3: "--w3", w4: "--w4", w5: "--w5" };
-$("#pPrint") && ($("#pPrint").onclick = () => $("#oPrint").onclick());
-$("#oPrint").onclick = () => {
-  const c = (t) => ROWS.filter(r => isLate(r) && tierOf(ageOf(r)) === t);
-  $("#modal2Box").innerHTML = `
-    <h3>印刷（A4）</h3>
-    <div class="meta">受注から2週間以上たった未発送を印刷します。行は経過週数の色で塗り分けます。</div>
-    <div class="f"><label>まとめ方</label>
-      <div class="popt">
-        <label><input type="radio" name="pBy" value="prod" checked>商品別（商品ごとに、未発送の注文をまとめる）</label>
-        <label><input type="radio" name="pBy" value="tier">色別（経過週数ごとに分ける）</label>
-      </div></div>
-    <div class="f"><label>印刷する色</label>
-      <div class="popt">${["w5", "w4", "w3", "w2"].map(t => `<label><input type="checkbox" class="pt" value="${t}" checked>
-        <span class="tag ${t}">${TIER_LABEL[t]}</span> ${c(t).filter(r => !isSnoozed(r)).length}件</label>`).join("")}</div></div>
-    <div class="f"><label>そのほか</label>
-      <div class="popt">
-        <label><input type="checkbox" id="pSnz">対応メモで止めた行も入れる</label>
-        <label><input type="checkbox" id="pBreak" checked>色別のとき、色ごとに新しいページにする</label>
-        <label><input type="checkbox" id="pLand" checked>A4横向き（外すとA4縦向き）</label>
-      </div></div>
-    <div class="actions"><button class="btn" id="pCancel">閉じる</button><button class="btn primary" id="pGo">印刷する</button></div>`;
-  $("#modal2").classList.remove("hidden");
-  $("#pCancel").onclick = () => $("#modal2").classList.add("hidden");
-  $("#pGo").onclick = () => {
-    const tiers = [...document.querySelectorAll(".pt:checked")].map(x => x.value);
-    if (!tiers.length) { alert("印刷する色を1つ以上選んでください"); return; }
-    const by = document.querySelector("input[name=pBy]:checked").value;
-    (by === "prod" ? printByProduct : printTiers)(tiers, $("#pSnz").checked, $("#pBreak").checked, $("#pLand").checked);
-    $("#modal2").classList.add("hidden");
-  };
-};
-function setPage(landscape) {
-  let st = document.getElementById("pageStyle");
-  if (!st) { st = document.createElement("style"); st.id = "pageStyle"; document.head.appendChild(st); }
-  st.textContent = `@page{size:A4 ${landscape ? "landscape" : "portrait"};margin:10mm}`;
-}
-function printByProduct(tiers, withSnz, _pageBreak, landscape) {
-  const rows = ROWS.filter(r => isLate(r) && tiers.includes(tierOf(ageOf(r))) && (withSnz || !isSnoozed(r)));
-  const map = new Map();
-  rows.forEach(r => { const k = prodKey(r); const g = map.get(k) || { name: r.product_name, code: r.product_code, rows: [] }; g.rows.push(r); map.set(k, g); });
-  const groups = [...map.values()].map(g => {
-    g.rows.sort((a, b) => (a.order_date || "").localeCompare(b.order_date || ""));
-    g.oldest = ageOf(g.rows[0]); g.qty = g.rows.reduce((a, r) => a + pieces(r), 0); return g;
-  }).sort((a, b) => b.rows.length - a.rows.length || b.oldest - a.oldest);
-  const col = (t, k) => `var(${PRINT_COLORS[t]}-${k})`;
-  const cnt = (t) => rows.filter(r => tierOf(ageOf(r)) === t).length;
-  const now = new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
-  $("#printArea").innerHTML = `
-    <h1>受注台帳　未発送アラーム一覧（商品別）</h1>
-    <div class="pmeta">印刷日時 ${esc(now)}　／　受注から2週間以上たった未発送 ${rows.length}件・${groups.length}商品${withSnz ? "（対応メモで止めた行を含む）" : "（対応メモで止めた行を除く）"}　／　商品は未発送の件数が多い順</div>
-    <div class="psum">${["w5", "w4", "w3", "w2"].filter(t => tiers.includes(t)).map(t => `<span style="background:${col(t, "bar")};color:${t === "w2" ? "#3d2b00" : "#fff"}">${TIER_LABEL[t]} ${cnt(t)}件</span>`).join("")}</div>
-    <table><colgroup><col style="width:4%"><col style="width:10%"><col style="width:7%"><col style="width:7%"><col style="width:${landscape ? 30 : 32}%"><col style="width:12%"><col></colgroup>
-      <thead><tr><th>済</th><th>受注日</th><th class="n">経過</th><th class="n">数量</th><th>医院名</th><th>受注番号</th><th>対応メモ</th></tr></thead>
-      ${groups.map(g => { const t = tierOf(g.oldest); return `<tbody class="${g.rows.length <= 12 ? "pg" : ""}">
-        <tr class="ph" style="background:${col(t, "bg")}"><td colspan="7" style="border-left:6px solid ${col(t, "bar")}">${esc(g.name)}${g.code ? `（${esc(g.code)}）` : ""}　—　未発送 ${g.rows.length}件／数量 ${fmtN(g.qty)}／最古 ${g.oldest}日</td></tr>
-        ${g.rows.map(r => { const tt = tierOf(ageOf(r)), f = FOLLOW[keyOf(r)]; return `<tr style="background:${col(tt, "bg")}">
-          <td><span class="chk"></span></td><td>${esc(r.order_date ?? "")}</td><td class="n"><b>${ageOf(r)}日</b></td><td class="n">${fmtN(pieces(r))}</td>
-          <td>${esc(r.customer || r.dest_company || "")}</td><td>${esc(r.order_no ?? "")}</td><td>${esc(f?.note ?? "")}</td></tr>`; }).join("")}
-      </tbody>`; }).join("")}
-    </table>`;
-  setPage(landscape);
-  setTimeout(() => window.print(), 50);
-}
-function printTiers(tiers, withSnz, pageBreak, landscape) {
-  const order = ["w5", "w4", "w3", "w2"].filter(t => tiers.includes(t));
-  const groups = order.map(t => ({ t, rows: ROWS.filter(r => isLate(r) && tierOf(ageOf(r)) === t && (withSnz || !isSnoozed(r)))
-    .sort((a, b) => (a.order_date || "").localeCompare(b.order_date || "") || a.product_name.localeCompare(b.product_name, "ja")) }));
-  const total = groups.reduce((a, g) => a + g.rows.length, 0);
-  const now = new Date().toLocaleString("ja-JP", { timeZone: "Asia/Tokyo" });
-  const range = { w2: "14〜20日", w3: "21〜27日", w4: "28〜34日", w5: "35日以上" };
-  const col = (t, k) => `var(${PRINT_COLORS[t]}-${k})`;
-  $("#printArea").innerHTML = `
-    <h1>受注台帳　未発送アラーム一覧</h1>
-    <div class="pmeta">印刷日時 ${esc(now)}　／　受注から2週間以上たった未発送 ${total}件${withSnz ? "（対応メモで止めた行を含む）" : "（対応メモで止めた行を除く）"}</div>
-    <div class="psum">${groups.map(g => `<span style="background:${col(g.t, "bar")};color:${g.t === "w2" ? "#3d2b00" : "#fff"}">${TIER_LABEL[g.t]}（${range[g.t]}）${g.rows.length}件</span>`).join("")}</div>
-    ${groups.map((g, i) => `<section class="${pageBreak && i ? "brk" : ""}">
-      <h2 style="background:${col(g.t, "bg")};color:${col(g.t, "ink")};border-left:6px solid ${col(g.t, "bar")}">${TIER_LABEL[g.t]}（受注から${range[g.t]}）　${g.rows.length}件　／　数量 ${fmtN(g.rows.reduce((a, r) => a + pieces(r), 0))}</h2>
-      ${g.rows.length ? `<table><colgroup><col style="width:4%"><col style="width:10%"><col style="width:6%"><col style="width:${landscape ? 30 : 27}%"><col style="width:6%"><col style="width:${landscape ? 20 : 21}%"><col style="width:9%"><col></colgroup>
-        <thead><tr><th>済</th><th>受注日</th><th class="n">経過</th><th>商品名</th><th class="n">数量</th><th>医院名</th><th>受注番号</th><th>対応メモ</th></tr></thead>
-        <tbody>${g.rows.map(r => { const f = FOLLOW[keyOf(r)]; return `<tr style="background:${col(g.t, "bg")}">
-          <td><span class="chk"></span></td><td>${esc(r.order_date ?? "")}</td><td class="n"><b>${ageOf(r)}日</b></td><td>${esc(r.product_name)}</td>
-          <td class="n">${fmtN(pieces(r))}</td><td>${esc(r.customer || r.dest_company || "")}</td><td>${esc(r.order_no ?? "")}</td><td>${esc(f?.note ?? "")}</td></tr>`; }).join("")}</tbody></table>`
-        : `<div class="pmeta">該当なし</div>`}
-    </section>`).join("")}`;
-  setPage(landscape);
-  setTimeout(() => window.print(), 50);
-}
-
-// ---------- 受注明細 ----------
-["lq", "lMonth"].forEach(id => $("#" + id).addEventListener("input", drawList));
-function drawList() {
-  const q = normA($("#lq").value), m = $("#lMonth").value;
-  const list = ROWS.filter(r => (!m || (r.order_date || "").startsWith(m)) &&
-    (!q || normA([r.product_name, r.product_code, r.customer, r.dest_company, r.order_no, r.tracking].join(" ")).includes(q)))
-    .sort((a, b) => (b.ordered_at || "").localeCompare(a.ordered_at || ""));
-  $("#lCount").textContent = `${list.length} 件`;
-  $("#lEmpty").classList.toggle("hidden", list.length > 0);
-  $("#lBody").innerHTML = list.slice(0, 2000).map(r => `<tr class="${rowClass(r)}">
-    <td class="mono">${esc(r.order_date ?? "")}</td><td class="ell" title="${esc(r.product_name)}">${esc(r.product_name)}</td>
-    <td class="num">${fmtN(pieces(r))}</td><td class="num">${fmtN(r.unit_price)}</td><td class="num">${fmtN(r.subtotal)}</td>
-    <td class="ell">${esc(r.customer || r.dest_company || "")}</td><td>${esc(r.order_status ?? "")}</td><td>${statusTag(r)}</td>
-    <td class="mono">${esc(r.ship_date ?? "")}</td><td class="mono">${esc(r.order_no ?? "")}</td></tr>`).join("");
-}
-
-// ---------- CSV取込 ----------
-const drop = $("#drop");
-["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
-["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
-drop.addEventListener("drop", e => { if (e.dataTransfer.files[0]) readCsvFile(e.dataTransfer.files[0]); });
-$("#pickBtn").onclick = () => $("#fileInput").click();
-$("#fileInput").onchange = e => { if (e.target.files[0]) readCsvFile(e.target.files[0]); e.target.value = ""; };
-
-async function decodeFile(file) {
-  const buf = await file.arrayBuffer();
-  const utf = new TextDecoder("utf-8", { fatal: false }).decode(buf);
-  if (utf.includes("受注ID") && utf.includes("受注内連番")) return utf;
-  return new TextDecoder("shift_jis").decode(buf);
-}
-const CMP = ["order_status", "ship_status", "ship_date", "tracking", "qty", "dest_address", "dest_phone"];
-let PENDING = null;
-async function readCsvFile(file) {
-  const box = $("#preview");
-  box.innerHTML = `<div class="card"><span class="spinner"></span>読み込み中…</div>`;
-  try {
-    const { records, shipping, skipped } = csvToOrders(parseCsv(await decodeFile(file)));
-    if (!records.length) throw new Error("取り込める商品行がありません");
-    const byKey = new Map(ROWS.map(r => [keyOf(r), r]));
-    const fresh = [], changed = [], same = [];
-    records.forEach(r => {
-      const old = byKey.get(keyOf(r));
-      if (!old) fresh.push(r);
-      else if (CMP.some(k => String(old[k] ?? "") !== String(r[k] ?? ""))) changed.push(r);
-      else same.push(r);
-    });
-    const shippedNow = changed.filter(r => r.ship_status === "発送済" && byKey.get(keyOf(r)).ship_status !== "発送済").length;
-    const dates = records.map(r => r.order_date).sort();
-    PENDING = { file, records, fresh: fresh.length, changed: changed.length, from: dates[0], to: dates[dates.length - 1] };
-    const sameName = HISTORY.filter(h => h.file_name === file.name);
-    const nothing = !fresh.length && !changed.length;
-    box.innerHTML = `<div class="card"><h3>${esc(file.name)}</h3>
-      ${nothing ? `<div class="alert err"><strong>このファイルの内容は、すべて登録済みで、変更もありません（${records.length} 行とも同じ）。</strong><br>取り込む必要はありません。</div>`
-        : `<div class="alert info">商品行 ${records.length} 行（受注日 ${esc(PENDING.from)} 〜 ${esc(PENDING.to)}）<br>
-          <strong>新しい受注 ${fresh.length} 行</strong>　／　<strong>内容が変わった行 ${changed.length} 行</strong>${shippedNow ? `（うち発送済になった行 ${shippedNow}）` : ""}　／　変更なし ${same.length} 行</div>`}
-      ${shipping ? `<div class="alert info">送料の行 ${shipping} 行は取り込みません。</div>` : ""}
-      ${skipped ? `<div class="alert warn">受注ID・商品名・受注日時のいずれかが空のため、${skipped} 行を読み飛ばしました。</div>` : ""}
-      ${sameName.length ? `<div class="alert warn">同じ名前のファイルを ${sameName.map(h => new Date(h.created_at).toLocaleString("ja-JP")).join("、")} に取り込んでいます。</div>` : ""}
-      <div class="actions"><button class="btn${nothing ? " primary" : ""}" id="cancelImp">やめる</button>
-        ${nothing ? "" : `<button class="btn primary" id="doImp">取り込む</button>`}</div></div>`;
-    $("#cancelImp").onclick = () => { PENDING = null; box.innerHTML = ""; };
-    if ($("#doImp")) $("#doImp").onclick = (e) => doImport(e.target, fresh, changed);
-  } catch (e) {
-    box.innerHTML = `<div class="card"><div class="alert err">読み込めませんでした：${esc(e.message)}</div></div>`;
-  }
-}
-async function doImport(btn, fresh, changed) {
-  if (!PENDING) return;
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>取り込み中…';
-  try {
-    const { data: imp, error: e1 } = await sb.from("order_imports").insert({
-      file_name: PENDING.file.name, row_count: PENDING.records.length, new_count: PENDING.fresh, changed_count: PENDING.changed,
-      date_from: PENDING.from, date_to: PENDING.to,
-    }).select().single();
-    if (e1) throw e1;
-    const now = new Date().toISOString();
-    const parts = [fresh.map(r => ({ ...r, import_id: imp.id })), changed.map(r => ({ ...r, updated_at: now }))];
-    for (const part of parts) {
-      for (let i = 0; i < part.length; i += 500) {
-        const { error } = await sb.from("bcart_orders").upsert(part.slice(i, i + 500), { onConflict: "order_id,line_seq" });
-        if (error) throw error;
-      }
-    }
-    $("#preview").innerHTML = `<div class="card"><div class="alert ok">✓ 新しい受注 ${PENDING.fresh} 行を登録し、${PENDING.changed} 行を最新の内容に更新しました</div></div>`;
-    PENDING = null;
-    await loadAll();
-  } catch (e) {
-    alert("取り込みに失敗しました：" + (e.message || e));
-    btn.disabled = false; btn.textContent = "取り込む";
-  }
-}
-let HISTORY = [];
-async function loadHistory() {
-  const { data } = await sb.from("order_imports").select("*").order("created_at", { ascending: false }).limit(50);
-  HISTORY = data || [];
-  $("#hBody").innerHTML = HISTORY.map(h => `<tr><td class="mono">${new Date(h.created_at).toLocaleString("ja-JP")}</td><td>${esc(h.file_name ?? "")}</td>
-    <td class="mono">${esc(h.date_from ?? "")} 〜 ${esc(h.date_to ?? "")}</td><td class="num">${fmtN(h.row_count)}</td><td class="num">${fmtN(h.new_count)}</td><td class="num">${fmtN(h.changed_count)}</td>
-    <td><button class="btn small" data-undo="${h.id}">取り消す</button></td></tr>`).join("")
-    || `<tr><td colspan="7" class="empty">まだ取り込みはありません</td></tr>`;
-  document.querySelectorAll("[data-undo]").forEach(b => b.onclick = () => undoImport(b.dataset.undo));
-}
-async function undoImport(id) {
-  const h = HISTORY.find(x => x.id === id); if (!h) return;
-  const n = ROWS.filter(r => r.import_id === id).length;
-  const when = new Date(h.created_at).toLocaleString("ja-JP");
-  if (!confirm(n ? `${when} の取込（${h.file_name}）を取り消します。\nこの取込で新しく登録された ${n} 行を削除します（更新した行の内容は元に戻りません）。よろしいですか？`
-                 : `${when} の取込（${h.file_name}）は、新しく登録した行がありません。\n履歴だけを削除します。よろしいですか？`)) return;
-  if (n) { const { error } = await sb.from("bcart_orders").delete().eq("import_id", id); if (error) { alert("削除に失敗しました：" + error.message); return; } }
-  const { error } = await sb.from("order_imports").delete().eq("id", id);
-  if (error) { alert("履歴の削除に失敗しました：" + error.message); return; }
-  await loadAll();
-}
-
-// ---------- LINEのテスト送信 ----------
-$("#lineTest").onclick = async (e) => {
-  const btn = e.target; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>送信中…';
-  const out = $("#lineResult");
-  try {
-    const { data, error } = await sb.functions.invoke(LINE_FN, { body: { test: true } });
-    if (error) {
-      let detail = error.message;
-      try { const b = await error.context.json(); detail = `(${error.context.status}) ` + (b.error || b.message || JSON.stringify(b)); }
-      catch (_) { try { detail = `(${error.context.status}) ` + await error.context.text(); } catch (_) {} }
-      throw new Error(detail);
-    }
-    out.innerHTML = `<div class="alert ok">✓ LINEに送りました（対象 ${fmtN(data.count)} 件）</div>`;
-  } catch (err) {
-    out.innerHTML = `<div class="alert err">送れませんでした：${esc(err.message)}</div>`;
-  } finally { btn.disabled = false; btn.textContent = "今すぐLINEに送ってみる"; }
-};
-
-// ---------- タブ・ログイン ----------
-function switchTab(t) {
-  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x.dataset.tab === t));
-  ["prod", "open", "inst", "list", "import"].forEach(k => $("#tab-" + k).classList.toggle("hidden", k !== t));
-  if (t === "open") drawOpen();
-}
-document.querySelectorAll("nav button").forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+// ---------- ログイン ----------
 async function boot() {
   const { data: { session } } = await sb.auth.getSession();
   if (session) showApp(session.user); else $("#login").classList.remove("hidden");
@@ -1002,7 +414,1247 @@ $("#loginBtn").onclick = async () => {
 };
 $("#pw").addEventListener("keydown", e => { if (e.key === "Enter") $("#loginBtn").click(); });
 $("#logoutBtn").onclick = async () => { await sb.auth.signOut(); location.reload(); };
-function showApp(user) { $("#userEmail").textContent = user.email; $("#app").classList.remove("hidden"); loadAll(); }
+function showApp(user) { $("#userEmail").textContent = user.email; $("#app").classList.remove("hidden"); }
+
+// ---------- タブ ----------
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("on", x === b));
+  $("#tab-import").classList.toggle("hidden", b.dataset.tab !== "import");
+  $("#tab-ledger").classList.toggle("hidden", b.dataset.tab !== "ledger");
+  $("#tab-price").classList.toggle("hidden", b.dataset.tab !== "price");
+  $("#tab-profit").classList.toggle("hidden", b.dataset.tab !== "profit");
+  $("#tab-sales").classList.toggle("hidden", b.dataset.tab !== "sales");
+  $("#tab-arari").classList.toggle("hidden", b.dataset.tab !== "arari");
+  if (b.dataset.tab === "arari") loadArari();
+  if (b.dataset.tab === "profit") loadProfit();
+  if (b.dataset.tab === "sales") loadSalesPrices();
+  if (b.dataset.tab === "ledger") loadLedger();
+  if (b.dataset.tab === "price") loadPrices();
+});
+
+// ---------- 取込：ファイル受け取り ----------
+const drop = $("#drop");
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", e => handleFiles(e.dataTransfer.files));
+$("#pickBtn").onclick = () => $("#fileInput").click();
+$("#fileInput").onchange = e => { handleFiles(e.target.files); e.target.value = ""; };
+$("#manualBtn").onclick = () => addCard(null);
+
+function handleFiles(list) {
+  [...list].forEach(f => {
+    if (f.type !== "application/pdf" && !f.name.toLowerCase().endsWith(".pdf")) { alert(f.name + " はPDFではありません"); return; }
+    addCard(f);
+  });
+}
+
+const fileToBase64 = (file) => new Promise((ok, ng) => {
+  const r = new FileReader();
+  r.onload = () => ok(String(r.result).split(",")[1]);
+  r.onerror = ng; r.readAsDataURL(file);
+});
+
+// ---------- 取込：1件ごとの確認カード ----------
+function addCard(file) {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `
+    <div class="card-head">
+      <span class="fname">${esc(file ? file.name : "手入力")}</span>
+      <span class="state">${file ? '<span class="spinner"></span>読み取り中…' : "入力してください"}</span>
+    </div>
+    <div class="card-body" ${file ? "" : 'style="grid-template-columns:1fr"'}>
+      ${file ? `<iframe src="${URL.createObjectURL(file)}#view=FitH"></iframe>` : ""}
+      <div class="form"></div>
+    </div>`;
+  $("#queue").prepend(card);
+  const ctx = { card, file };
+  if (!file) { renderForm(ctx, { items: [{}], notes: [] }); return; }
+  readPdf(ctx);
+}
+
+async function readPdf(ctx) {
+  const state = $(".state", ctx.card);
+  try {
+    const pdf_base64 = await fileToBase64(ctx.file);
+    const { data, error } = await sb.functions.invoke("bright-endpoint", { body: { pdf_base64 } });
+    if (error) {
+      let detail = error.message;
+      try {
+        const body = await error.context.json();
+        detail = `(${error.context.status}) ` + (body.error || body.msg || body.message || JSON.stringify(body));
+      } catch (_) {
+        try { detail = `(${error.context.status}) ` + await error.context.text(); } catch (_) {}
+      }
+      throw new Error(detail);
+    }
+    if (!data?.invoice) throw new Error(data?.error || "不明なエラー");
+    state.textContent = "読み取り完了・内容を確認してください";
+    renderForm(ctx, data.invoice);
+  } catch (e) {
+    state.textContent = "読み取りに失敗（手入力できます）";
+    renderForm(ctx, { items: [{}], notes: ["自動読み取りに失敗しました：" + e.message] });
+  }
+}
+
+const HEAD_FIELDS = [
+  ["supplier", "取引先（発行元）", "text"], ["invoice_no", "請求書番号", "text"],
+  ["invoice_date", "請求日", "date"], ["awb_no", "AWB番号", "text"],
+  ["currency", "通貨", "text"], ["total_amount", "合計金額", "num"],
+  ["incoterm", "取引条件", "text"], ["ship_to", "送り先", "text"],
+];
+
+function renderForm(ctx, inv) {
+  const form = $(".form", ctx.card);
+  form.innerHTML = `
+    <div class="grid">
+      ${HEAD_FIELDS.map(([k, label, t]) => `
+        <div class="f"><label>${label}</label>
+          <input data-k="${k}" type="${t === "date" ? "date" : "text"}" class="${t === "num" ? "num" : ""}"
+                 value="${esc(t === "num" ? fmt(inv[k]) : inv[k])}"></div>`).join("")}
+      <div class="f wide"><label>メモ</label><input data-k="memo" value="${esc(inv.memo)}"></div>
+    </div>
+    <h4>明細</h4>
+    <table class="items">
+      <thead><tr><th style="width:34%">商品名</th><th>HSコード</th><th style="width:10%">数量</th><th style="width:8%">単位</th>
+        <th style="width:13%">単価</th><th style="width:14%">小計</th><th style="width:6%">原産</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn" data-act="addrow" style="margin-top:6px;font-size:12px">＋ 明細を追加</button>
+    <div class="alerts"></div>
+    <div class="actions">
+      <button class="btn" data-act="recheck">再チェック</button>
+      <button class="btn danger" data-act="discard">${ctx.editId ? "キャンセル" : "破棄"}</button>
+      <button class="btn primary" data-act="save">${ctx.editId ? "変更を保存" : "登録する"}</button>
+    </div>`;
+  const tbody = $("tbody", form);
+  (inv.items?.length ? inv.items : [{}]).forEach(it => addRow(tbody, it));
+  ctx.readerNotes = inv.notes || [];
+
+  form.addEventListener("click", async e => {
+    const act = e.target.dataset.act;
+    if (act === "addrow") addRow(tbody, {});
+    if (act === "recheck") runChecks(ctx);
+    if (act === "discard") {
+      if (ctx.editId) openDetail(ctx.editId);
+      else if (confirm("この取込を破棄しますか？")) ctx.card.remove();
+    }
+    if (act === "save") (ctx.editId ? updateInvoice : saveInvoice)(ctx, e.target);
+  });
+  form.addEventListener("change", () => runChecks(ctx));
+  runChecks(ctx);
+}
+
+function addRow(tbody, it) {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td><input data-c="description" value="${esc(it.description)}"></td>
+    <td><input data-c="hs_code" value="${esc(it.hs_code)}"></td>
+    <td><input data-c="quantity" class="num" value="${esc(fmtQty(it.quantity))}"></td>
+    <td><input data-c="unit" value="${esc(it.unit)}"></td>
+    <td><input data-c="unit_price" class="num" value="${esc(it.unit_price == null ? "" : fmt(it.unit_price, 4).replace(/0{1,2}$/, ""))}"></td>
+    <td><input data-c="subtotal" class="num" value="${esc(fmt(it.subtotal))}"></td>
+    <td><input data-c="origin" value="${esc(it.origin)}"></td>
+    <td><button class="x" title="この行を削除">×</button></td>`;
+  $(".x", tr).onclick = () => { tr.remove(); };
+  tbody.appendChild(tr);
+}
+
+function collect(ctx) {
+  const form = $(".form", ctx.card);
+  const v = {};
+  form.querySelectorAll("[data-k]").forEach(i => v[i.dataset.k] = i.value.trim());
+  v.total_amount = toNum(v.total_amount);
+  v.currency = v.currency ? v.currency.toUpperCase() : "";
+  v.items = [...form.querySelectorAll("tbody tr")].map((tr, idx) => {
+    const r = { line_no: idx + 1 };
+    tr.querySelectorAll("[data-c]").forEach(i => r[i.dataset.c] = i.value.trim());
+    r.quantity = toNum(r.quantity); r.unit_price = toNum(r.unit_price); r.subtotal = toNum(r.subtotal);
+    return r;
+  }).filter(r => r.description || r.quantity != null || r.subtotal != null);
+  return v;
+}
+
+// ---------- チェック（計算・重複） ----------
+async function runChecks(ctx) {
+  const v = collect(ctx);
+  const box = $(".alerts", ctx.card);
+  const hard = [], warns = [];
+
+  // 必須
+  if (!v.supplier) hard.push("取引先が空です");
+  if (!v.invoice_no) hard.push("請求書番号が空です");
+  if (!v.items.length) hard.push("明細が1行もありません");
+  v.items.forEach(r => { if (!r.description) hard.push(`明細${r.line_no}行目の商品名が空です`); });
+
+  // 計算チェック
+  v.items.forEach(r => {
+    if (r.quantity != null && r.unit_price != null && r.subtotal != null &&
+        Math.abs(r.quantity * r.unit_price - r.subtotal) > 0.01)
+      warns.push(`明細${r.line_no}行目：数量×単価（${fmt(r.quantity * r.unit_price)}）と小計（${fmt(r.subtotal)}）が一致しません`);
+  });
+  const sum = v.items.reduce((s, r) => s + (r.subtotal ?? 0), 0);
+  if (v.total_amount != null && v.items.length && Math.abs(sum - v.total_amount) > 0.01)
+    warns.push(`明細の小計合計（${fmt(sum)}）と合計金額（${fmt(v.total_amount)}）が一致しません（送料・値引きの可能性も確認）`);
+
+  // 重複チェック（登録済みデータと照合）
+  if (v.supplier && v.invoice_no) {
+    const dup = await findDuplicates(v, ctx.editId);
+    hard.push(...dup.hard); warns.push(...dup.warns);
+  }
+
+  ctx.hard = hard; ctx.warns = warns;
+  box.innerHTML =
+    hard.map(t => `<div class="alert err">✕ ${esc(t)}</div>`).join("") +
+    warns.map(t => `<div class="alert warn">⚠ ${esc(t)}</div>`).join("") +
+    (ctx.readerNotes || []).map(t => `<div class="alert info">読み取りメモ：${esc(t)}</div>`).join("") +
+    (!hard.length && !warns.length ? `<div class="alert ok">✓ 計算・重複チェックに問題はありません</div>` : "");
+}
+
+async function findDuplicates(v, excludeId) {
+  const hard = [], warns = [];
+  const { data: same } = await sb.from("invoices").select("id,supplier,invoice_no,invoice_date,awb_no,total_amount,currency");
+  const all = (same || []).filter(r => r.id !== excludeId);
+  const sup = norm(v.supplier);
+
+  // 1) 同じ取引先・同じ請求書番号 → 登録不可
+  const exact = all.find(r => norm(r.supplier) === sup && norm(r.invoice_no) === norm(v.invoice_no));
+  if (exact) hard.push(`この請求書（${exact.invoice_no}）は ${exact.invoice_date ?? ""} 分として登録済みです`);
+
+  // 2) 同じAWB番号
+  if (v.awb_no) {
+    all.filter(r => r.awb_no && norm(r.awb_no) === norm(v.awb_no) && r !== exact)
+       .forEach(r => warns.push(`同じAWB番号（${v.awb_no}）の請求書 ${r.invoice_no} がすでにあります`));
+  }
+
+  // 3) 同じ取引先・同じ合計金額・同じ明細（前後60日以内）
+  const near = all.filter(r => r !== exact && norm(r.supplier) === sup &&
+    r.total_amount != null && v.total_amount != null && Math.abs(r.total_amount - v.total_amount) < 0.01 &&
+    (r.currency || "") === (v.currency || "") && withinDays(r.invoice_date, v.invoice_date, 60));
+  if (near.length) {
+    const { data: its } = await sb.from("invoice_items").select("invoice_id,description,quantity").in("invoice_id", near.map(r => r.id));
+    const sig = (rows) => rows.map(r => norm(r.description) + "|" + Number(r.quantity ?? 0)).sort().join("//");
+    const mine = sig(v.items);
+    near.forEach(r => {
+      if (sig((its || []).filter(i => i.invoice_id === r.id)) === mine)
+        warns.push(`請求書 ${r.invoice_no}（${r.invoice_date ?? "日付なし"}）と商品・数量・金額がまったく同じです。二重請求か、別の発送かを確認してください`);
+    });
+  }
+  return { hard, warns };
+}
+function withinDays(a, b, d) {
+  if (!a || !b) return true;
+  return Math.abs(new Date(a) - new Date(b)) <= d * 86400000;
+}
+
+// ---------- 登録 ----------
+async function saveInvoice(ctx, btn) {
+  await runChecks(ctx);
+  if (ctx.hard.length) { alert("登録できません：\n・" + ctx.hard.join("\n・")); return; }
+  if (ctx.warns.length && !confirm("警告があります。「要確認」として登録しますか？\n\n・" + ctx.warns.join("\n・"))) return;
+
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>登録中…';
+  const v = collect(ctx);
+  let pdf_path = null;
+  try {
+    if (ctx.file) {
+      const d = v.invoice_date || new Date().toISOString().slice(0, 10);
+      pdf_path = `${d.slice(0, 7)}/${crypto.randomUUID()}.pdf`;
+      const up = await sb.storage.from("invoice-pdfs").upload(pdf_path, ctx.file, { contentType: "application/pdf" });
+      if (up.error) throw up.error;
+    }
+    const { data: inv, error } = await sb.from("invoices").insert({
+      supplier: v.supplier, invoice_no: v.invoice_no, invoice_date: v.invoice_date || null,
+      awb_no: v.awb_no || null, currency: v.currency || null, total_amount: v.total_amount,
+      incoterm: v.incoterm || null, ship_to: v.ship_to || null, memo: v.memo || null,
+      pdf_path, pdf_name: ctx.file ? ctx.file.name : null,
+      status: ctx.warns.length ? "要確認" : "確認済",
+      warning_note: ctx.warns.length ? ctx.warns.join("\n") : null,
+    }).select().single();
+    if (error) throw error;
+    const items = v.items.map(r => ({ ...r, invoice_id: inv.id, hs_code: r.hs_code || null, unit: r.unit || null, origin: r.origin || null }));
+    const ie = await sb.from("invoice_items").insert(items);
+    if (ie.error) { await sb.from("invoices").delete().eq("id", inv.id); throw ie.error; }
+
+    $(".state", ctx.card).textContent = "登録しました";
+    $(".card-body", ctx.card).innerHTML = `<div class="form"><div class="alert ok">✓ ${esc(v.supplier)} / ${esc(v.invoice_no)} を${ctx.warns.length ? "「要確認」として" : ""}登録しました</div></div>`;
+    setTimeout(() => ctx.card.remove(), 4000);
+  } catch (e) {
+    if (pdf_path) await sb.storage.from("invoice-pdfs").remove([pdf_path]);
+    const msg = String(e.message || e);
+    alert("登録に失敗しました：" + (msg.includes("duplicate") ? "同じ請求書がすでに登録されています" : msg));
+    btn.disabled = false; btn.textContent = "登録する";
+  }
+}
+
+// ---------- 台帳 ----------
+let LEDGER = [];
+async function loadLedger() {
+  const { data, error } = await sb.from("invoices").select("*, invoice_items(*)").order("invoice_date", { ascending: false, nullsFirst: false }).order("created_at", { ascending: false });
+  if (error) { alert("読み込みに失敗しました：" + error.message); return; }
+  LEDGER = data.map(r => ({ ...r, invoice_items: (r.invoice_items || []).sort((a, b) => a.line_no - b.line_no) }));
+  const sel = $("#fSupplier"), cur = sel.value;
+  const sups = [...new Set(LEDGER.map(r => r.supplier))].sort();
+  sel.innerHTML = `<option value="">取引先：すべて</option>` + sups.map(s => `<option ${s === cur ? "selected" : ""}>${esc(s)}</option>`).join("");
+  drawLedger();
+}
+["q", "fSupplier", "fStatus", "fMonth"].forEach(id => $("#" + id).addEventListener("input", drawLedger));
+
+function filtered() {
+  const q = norm($("#q").value), s = $("#fSupplier").value, st = $("#fStatus").value, m = $("#fMonth").value;
+  return LEDGER.filter(r =>
+    (!s || r.supplier === s) && (!st || r.status === st) && (!m || (r.invoice_date || "").startsWith(m)) &&
+    (!q || norm([r.supplier, r.invoice_no, r.awb_no, r.ship_to, r.memo, ...r.invoice_items.map(i => i.description)].join(" ")).includes(q)));
+}
+
+function drawLedger() {
+  const rows = filtered();
+  $("#count").textContent = `${rows.length} 件`;
+  $("#ledgerEmpty").classList.toggle("hidden", rows.length > 0);
+  $("#ledgerBody").innerHTML = rows.map(r => {
+    const its = r.invoice_items, qty = its.reduce((s, i) => s + Number(i.quantity ?? 0), 0);
+    const name = its[0] ? its[0].description + (its.length > 1 ? ` 他${its.length - 1}件` : "") : "";
+    return `<tr data-id="${r.id}">
+      <td class="mono">${esc(r.invoice_date ?? "")}</td><td>${esc(r.supplier)}</td>
+      <td class="mono">${esc(r.invoice_no)}</td><td class="mono">${esc(r.awb_no ?? "")}</td>
+      <td>${esc(name)}</td><td class="mono" style="text-align:right">${fmtQty(qty)}</td>
+      <td class="mono" style="text-align:right">${fmt(r.total_amount)} ${esc(r.currency ?? "")}</td>
+      <td><span class="tag ${r.status === "要確認" ? "need" : "done"}">${esc(r.status)}</span></td></tr>`;
+  }).join("");
+  document.querySelectorAll("#ledgerBody tr").forEach(tr => tr.onclick = () => openDetail(tr.dataset.id));
+}
+
+function openDetail(id) {
+  const r = LEDGER.find(x => x.id === id); if (!r) return;
+  $("#modalBox").innerHTML = `
+    <h3>${esc(r.supplier)}　${esc(r.invoice_no)}</h3>
+    <div class="meta">登録日時 ${new Date(r.created_at).toLocaleString("ja-JP")}${r.pdf_name ? "　/　" + esc(r.pdf_name) : ""}</div>
+    <dl class="kv">
+      <dt>請求日</dt><dd class="mono">${esc(r.invoice_date ?? "")}</dd><dt>AWB番号</dt><dd class="mono">${esc(r.awb_no ?? "")}</dd>
+      <dt>合計</dt><dd class="mono">${fmt(r.total_amount)} ${esc(r.currency ?? "")}</dd><dt>取引条件</dt><dd>${esc(r.incoterm ?? "")}</dd>
+      <dt>送り先</dt><dd>${esc(r.ship_to ?? "")}</dd><dt></dt><dd></dd>
+    </dl>
+    <h4>明細</h4>
+    <table class="items"><thead><tr><th>商品名</th><th>HSコード</th><th style="text-align:right">数量</th><th>単位</th><th style="text-align:right">単価</th><th style="text-align:right">小計</th><th>原産</th></tr></thead>
+    <tbody>${r.invoice_items.map(i => `<tr><td>${esc(i.description)}</td><td class="mono">${esc(i.hs_code ?? "")}</td>
+      <td class="mono" style="text-align:right">${fmtQty(i.quantity)}</td><td>${esc(i.unit ?? "")}</td>
+      <td class="mono" style="text-align:right">${i.unit_price == null ? "" : Number(i.unit_price).toLocaleString("en-US", { maximumFractionDigits: 4 })}</td>
+      <td class="mono" style="text-align:right">${fmt(i.subtotal)}</td><td>${esc(i.origin ?? "")}</td></tr>`).join("")}</tbody></table>
+    ${r.warning_note ? `<div class="alerts">${r.warning_note.split("\n").map(t => `<div class="alert warn">⚠ ${esc(t)}</div>`).join("")}</div>` : ""}
+    <div class="grid" style="margin-top:14px">
+      <div class="f"><label>状態</label><select id="dStatus"><option ${r.status === "要確認" ? "selected" : ""}>要確認</option><option ${r.status === "確認済" ? "selected" : ""}>確認済</option></select></div>
+      <div class="f"></div>
+      <div class="f wide"><label>メモ（確認結果など）</label><textarea id="dMemo" rows="3">${esc(r.memo ?? "")}</textarea></div>
+    </div>
+    <div class="actions">
+      ${r.pdf_path ? `<button class="btn" id="dPdf">PDFを開く</button>` : ""}
+      <button class="btn" id="dEdit">編集</button>
+      <button class="btn danger" id="dDel">削除</button>
+      <span style="flex:1"></span>
+      <button class="btn" id="dClose">閉じる</button>
+      <button class="btn primary" id="dSave">保存</button>
+    </div>`;
+  $("#modal").classList.remove("hidden");
+  $("#dClose").onclick = closeModal;
+  $("#dEdit").onclick = () => editDetail(r);
+  if (r.pdf_path) $("#dPdf").onclick = async () => {
+    const w = window.open("", "_blank");
+    const { data, error } = await sb.storage.from("invoice-pdfs").createSignedUrl(r.pdf_path, 600);
+    if (error) { w.close(); alert("PDFを開けませんでした"); return; }
+    w.location = data.signedUrl;
+  };
+  $("#dSave").onclick = async () => {
+    const { error } = await sb.from("invoices").update({ status: $("#dStatus").value, memo: $("#dMemo").value || null }).eq("id", r.id);
+    if (error) { alert("保存に失敗しました：" + error.message); return; }
+    closeModal(); loadLedger();
+  };
+  $("#dDel").onclick = async () => {
+    if (!confirm(`${r.invoice_no} を削除します。元に戻せません。よろしいですか？`)) return;
+    const { error } = await sb.from("invoices").delete().eq("id", r.id);
+    if (error) { alert("削除に失敗しました：" + error.message); return; }
+    if (r.pdf_path) await sb.storage.from("invoice-pdfs").remove([r.pdf_path]);
+    closeModal(); loadLedger();
+  };
+}
+// ---------- 登録済みの請求書を編集 ----------
+function editDetail(r) {
+  $("#modalBox").innerHTML = `
+    <h3>${esc(r.supplier)}　${esc(r.invoice_no)} を編集</h3>
+    <div class="meta">内容を書き換えて「変更を保存」を押してください。保存時に計算・重複チェックをかけ直します。</div>
+    <div id="editWrap"><div class="form" style="padding:0;max-height:none"></div></div>`;
+  const ctx = { card: $("#editWrap"), file: null, editId: r.id, status: r.status };
+  renderForm(ctx, { ...r, items: r.invoice_items, notes: [] });
+}
+
+async function updateInvoice(ctx, btn) {
+  await runChecks(ctx);
+  if (ctx.hard.length) { alert("保存できません：\n・" + ctx.hard.join("\n・")); return; }
+  if (ctx.warns.length && !confirm("警告があります。「要確認」として保存しますか？\n\n・" + ctx.warns.join("\n・"))) return;
+
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>保存中…';
+  const v = collect(ctx), id = ctx.editId;
+  try {
+    const { error } = await sb.from("invoices").update({
+      supplier: v.supplier, invoice_no: v.invoice_no, invoice_date: v.invoice_date || null,
+      awb_no: v.awb_no || null, currency: v.currency || null, total_amount: v.total_amount,
+      incoterm: v.incoterm || null, ship_to: v.ship_to || null, memo: v.memo || null,
+      status: ctx.warns.length ? "要確認" : ctx.status,
+      warning_note: ctx.warns.length ? ctx.warns.join("\n") : null,
+    }).eq("id", id);
+    if (error) throw error;
+
+    // 明細は入れ替え（失敗したら元に戻す）
+    const { data: oldItems } = await sb.from("invoice_items").select("*").eq("invoice_id", id);
+    const del = await sb.from("invoice_items").delete().eq("invoice_id", id);
+    if (del.error) throw del.error;
+    const items = v.items.map(r => ({ ...r, invoice_id: id, hs_code: r.hs_code || null, unit: r.unit || null, origin: r.origin || null }));
+    const ins = await sb.from("invoice_items").insert(items);
+    if (ins.error) {
+      if (oldItems?.length) await sb.from("invoice_items").insert(oldItems);
+      throw ins.error;
+    }
+    await loadLedger();
+    openDetail(id);
+  } catch (e) {
+    const msg = String(e.message || e);
+    alert("保存に失敗しました：" + (msg.includes("duplicate") ? "同じ取引先・請求書番号の請求書がすでにあります" : msg));
+    btn.disabled = false; btn.textContent = "変更を保存";
+  }
+}
+
+function closeModal() { $("#modal").classList.add("hidden"); }
+
+// =========================================================
+// 仕入価格（請求書の明細を読むだけ。書き込むのは為替レートの表だけ）
+// =========================================================
+let PR_LINES = [], PR_PRODUCTS = [], FX = {};
+const ABC = new Intl.Collator("ja", { sensitivity: "base", numeric: true });
+// 並べ替え用の名前（先頭の【…】［…］などは除く）
+const sortName = (s) => String(s ?? "").replace(/^\s*(【[^】]*】|［[^］]*］|\[[^\]]*\]|\s)+/, "").trim();
+const isKana = (s) => /^[\u3040-\u30FF\u31F0-\u31FF\uFF66-\uFF9F\u4E00-\u9FFF]/.test(sortName(s));
+// アルファベット順：英字の商品名を先に A→Z、そのあと日本語
+const byAlpha = (a, b) => (isKana(a) - isKana(b)) || ABC.compare(sortName(a), sortName(b));
+// あいうえお順：日本語の商品名を先に あ→ん、そのあと英字
+const byKana = (a, b) => (isKana(b) - isKana(a)) || ABC.compare(sortName(a), sortName(b));
+const prKey = (s) => String(s ?? "").toUpperCase().replace(/[^A-Z0-9\u3040-\u30FF\u4E00-\u9FFF]/g, "");
+const jpy = (price, cur) => price == null ? null : (cur === "JPY" ? Number(price) : (FX[cur] ? Number(price) * FX[cur] : null));
+const fmtYen = (n) => n == null ? "" : "¥" + Math.round(n).toLocaleString("ja-JP");
+const fmtPrice = (n) => n == null ? "" : Number(n).toLocaleString("en-US", { maximumFractionDigits: 4 });
+const pct = (a, b) => (a == null || b == null || !b) ? null : (a - b) / b * 100;
+const pctHtml = (p) => p == null ? "" : Math.abs(p) < 0.05 ? `<span class="flat">±0%</span>`
+  : `<span class="${p > 0 ? "up" : "down"}">${p > 0 ? "▲" : "▼"}${Math.abs(p).toFixed(1)}%</span>`;
+
+async function loadPrices() {
+  $("#prCount").innerHTML = '<span class="spinner"></span>読み込み中…';
+  const [inv, fx, pp, pa] = await Promise.all([
+    sb.from("invoices").select("id,supplier,invoice_no,invoice_date,currency,invoice_items(description,quantity,unit,unit_price)"),
+    sb.from("fx_rates").select("*"),
+    sb.from("price_products").select("*"),
+    sb.from("price_aliases").select("*"),
+  ]);
+  PP = pp.data || []; PA = {}; (pa.data || []).forEach(a => PA[a.alias_key] = a);
+  if (inv.error) { $("#prCount").textContent = ""; alert("読み込みに失敗しました：" + inv.error.message); return; }
+  FX = {}; (fx.data || []).forEach(r => FX[r.currency] = Number(r.rate_jpy));
+  PR_LINES = [];
+  inv.data.forEach(v => (v.invoice_items || []).forEach(it => {
+    if (it.unit_price == null || !it.description) return;
+    PR_LINES.push({ key: prKey(it.description), name: it.description, supplier: v.supplier, currency: (v.currency || "").toUpperCase(),
+      date: v.invoice_date || "", invoice_no: v.invoice_no, invoice_id: v.id, qty: it.quantity, unit: it.unit, price: Number(it.unit_price) });
+  }));
+  const sel = $("#prSupplier"), cur = sel.value;
+  sel.innerHTML = `<option value="">取引先：すべて</option>` + [...new Set(PR_LINES.map(l => l.supplier))].sort().map(x => `<option ${x === cur ? "selected" : ""}>${esc(x)}</option>`).join("");
+  drawFx(); buildPrices(); drawPrices(); buildCompare(); drawCompare();
+}
+
+function drawFx() {
+  const curs = [...new Set(PR_LINES.map(l => l.currency).filter(c => c && c !== "JPY"))].sort();
+  const missing = curs.filter(c => !FX[c]);
+  $("#fxBox").innerHTML = `<b>為替レート（円換算に使用）</b>
+    ${curs.map(c => `<span class="cur">1 ${esc(c)} ＝ ¥<input data-cur="${esc(c)}" value="${FX[c] ?? ""}" placeholder="未設定"></span>`).join("")}
+    <button class="btn" id="fxSave">保存</button>
+    <span class="sub">${missing.length ? `<span class="up">${missing.join("・")} が未設定です（円換算が空欄になります）</span>` : "レートは自分で決めた値を入れてください。変えるとすぐに表の円換算が変わります。"}</span>`;
+  $("#fxSave").onclick = async () => {
+    const rows = [...document.querySelectorAll("#fxBox [data-cur]")].map(i => ({ currency: i.dataset.cur, rate_jpy: Number(String(i.value).replace(/,/g, "")) }))
+      .filter(r => r.rate_jpy > 0).map(r => ({ ...r, updated_at: new Date().toISOString() }));
+    if (!rows.length) { alert("レートを入れてください"); return; }
+    const { error } = await sb.from("fx_rates").upsert(rows, { onConflict: "currency" });
+    if (error) { alert("保存に失敗しました：" + error.message); return; }
+    rows.forEach(r => FX[r.currency] = r.rate_jpy);
+    drawFx(); buildPrices(); drawPrices(); buildCompare(); drawCompare();
+  };
+}
+
+function buildPrices() {
+  const map = new Map();
+  PR_LINES.forEach(l => { const g = map.get(l.key) || { key: l.key, lines: [] }; g.lines.push(l); map.set(l.key, g); });
+  PR_PRODUCTS = [...map.values()].map(g => {
+    g.lines.sort((a, b) => a.date.localeCompare(b.date) || String(a.invoice_no).localeCompare(String(b.invoice_no)));
+    // 同じ取引先・同じ通貨の前回単価と比べる
+    const lastBy = {};
+    g.lines.forEach(l => { const k = l.supplier + "|" + l.currency; l.prev = lastBy[k] ?? null; l.change = l.prev ? pct(l.price, l.prev.price) : null; l.yen = jpy(l.price, l.currency); lastBy[k] = l; });
+    const latest = g.lines[g.lines.length - 1];
+    const yens = g.lines.map(l => l.yen).filter(v => v != null);
+    return { key: g.key, name: latest.name, latest, lines: g.lines, count: g.lines.length,
+      suppliers: [...new Set(g.lines.map(l => l.supplier))],
+      min: yens.length ? Math.min(...yens) : null, max: yens.length ? Math.max(...yens) : null };
+  });
+}
+
+["prQ", "prSupplier", "prFilter", "prSort"].forEach(id => $("#" + id).addEventListener("input", drawPrices));
+function drawPrices() {
+  const q = norm($("#prQ").value), sup = $("#prSupplier").value, fl = $("#prFilter").value, so = $("#prSort").value;
+  let list = PR_PRODUCTS.filter(p => (!sup || p.suppliers.includes(sup)) &&
+    (!q || norm(p.name + " " + p.suppliers.join(" ")).includes(q)) &&
+    (!fl || (fl === "up" ? p.latest.change > 0.05 : p.latest.change < -0.05)));
+  list.sort(so === "name" ? (a, b) => byAlpha(a.name, b.name) : so === "nameDesc" ? (a, b) => byAlpha(b.name, a.name)
+    : so === "kana" ? (a, b) => byKana(a.name, b.name) : so === "kanaDesc" ? (a, b) => byKana(b.name, a.name)
+    : so === "change" ? (a, b) => Math.abs(b.latest.change ?? 0) - Math.abs(a.latest.change ?? 0)
+    : (a, b) => b.latest.date.localeCompare(a.latest.date));
+  $("#prCount").textContent = `${list.length} 商品`;
+  $("#prEmpty").classList.toggle("hidden", list.length > 0);
+  $("#prBody").innerHTML = list.map(p => { const l = p.latest; return `<tr data-k="${esc(p.key)}">
+    <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis" title="${esc(p.name)}">${esc(p.name)}</td>
+    <td class="mono">${esc(l.date)}</td>
+    <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${esc(l.supplier)}${p.suppliers.length > 1 ? ` <span class="sub">他${p.suppliers.length - 1}社</span>` : ""}</td>
+    <td class="num">${fmtPrice(l.price)} ${esc(l.currency)}</td><td class="num">${fmtYen(l.yen)}</td>
+    <td class="num">${l.prev ? fmtPrice(l.prev.price) + " " + esc(l.prev.currency) : ""}</td><td class="num">${pctHtml(l.change)}</td>
+    <td class="num">${fmtYen(p.min)}</td><td class="num">${fmtYen(p.max)}</td><td class="num">${p.count}</td></tr>`; }).join("");
+  document.querySelectorAll("#prBody tr").forEach(tr => tr.onclick = () => openPrice(tr.dataset.k));
+}
+
+function openPrice(key) {
+  const p = PR_PRODUCTS.find(x => x.key === key); if (!p) return;
+  const rows = [...p.lines].reverse();
+  $("#modalBox").innerHTML = `
+    <h3>${esc(p.name)}</h3>
+    <div class="meta">仕入 ${p.count}回　／　取引先：${p.suppliers.map(esc).join("、")}</div>
+    <div class="pstats">
+      <div><div class="l">最新単価</div><div class="v">${fmtPrice(p.latest.price)} ${esc(p.latest.currency)}</div></div>
+      <div><div class="l">円換算（今のレート）</div><div class="v">${fmtYen(p.latest.yen)}</div></div>
+      <div><div class="l">これまでの最安（円）</div><div class="v">${fmtYen(p.min)}</div></div>
+      <div><div class="l">これまでの最高（円）</div><div class="v">${fmtYen(p.max)}</div></div>
+    </div>
+    <h4>単価の履歴（新しい順）</h4>
+    <div class="tablewrap"><table class="ledger">
+      <thead><tr><th>請求日</th><th>取引先</th><th>請求書番号</th><th style="text-align:right">数量</th><th style="text-align:right">単価</th><th style="text-align:right">円換算</th><th style="text-align:right">前回比</th></tr></thead>
+      <tbody>${rows.map(l => `<tr><td class="mono">${esc(l.date)}</td><td>${esc(l.supplier)}</td><td class="mono">${esc(l.invoice_no)}</td>
+        <td class="num">${fmtQty(l.qty)} ${esc(l.unit ?? "")}</td><td class="num">${fmtPrice(l.price)} ${esc(l.currency)}</td>
+        <td class="num">${fmtYen(l.yen)}</td><td class="num">${pctHtml(l.change)}</td></tr>`).join("")}</tbody>
+    </table></div>
+    <div class="sub" style="margin-top:6px">円換算は過去の分も今のレートで計算しています（為替の影響を除いて、単価そのものの変化を比べるため）。</div>
+    <div class="actions"><button class="btn" id="prClose">閉じる</button></div>`;
+  $("#modal").classList.remove("hidden");
+  $("#prClose").onclick = closeModal;
+}
+
+// ---------- 仕入先の比較（まとめた商品） ----------
+let PP = [], PA = {}, CMP = [];
+const aliasKey = (supplier, name) => prKey(supplier) + "|" + prKey(name);
+const supKey = (s) => String(s ?? "").toUpperCase().replace(/\(.*?\)/g, " ").replace(/\b(CO|LTD|INC|AG|LIMITED|CORP|GMBH|SA|SRL)\b/g, "").replace(/[^A-Z0-9]/g, "");
+document.querySelectorAll("[data-pv]").forEach(b => b.onclick = () => {
+  document.querySelectorAll("[data-pv]").forEach(x => x.classList.toggle("on", x === b));
+  $("#pv-cmp").classList.toggle("hidden", b.dataset.pv !== "cmp");
+  $("#pv-raw").classList.toggle("hidden", b.dataset.pv !== "raw");
+});
+["cmQ", "cmFilter"].forEach(id => $("#" + id).addEventListener("input", drawCompare));
+
+function buildCompare() {
+  // 取引先＋商品名ごとに、まとめた商品へ割り当てる
+  const unlinked = new Map();
+  const byProd = new Map(PP.map(p => [p.id, { p, lines: [] }]));
+  PR_LINES.forEach(l => {
+    const a = PA[aliasKey(l.supplier, l.name)];
+    if (a && byProd.has(a.product_id)) {
+      const per = l.price / (Number(a.units) || 1);
+      byProd.get(a.product_id).lines.push({ ...l, units: Number(a.units) || 1, per, perYen: jpy(per, l.currency) });
+    } else {
+      const k = aliasKey(l.supplier, l.name);
+      const u = unlinked.get(k) || { key: k, supplier: l.supplier, name: l.name, last: l, count: 0 };
+      u.count++; if (l.date >= u.last.date) u.last = l; unlinked.set(k, u);
+    }
+  });
+  UNLINKED = [...unlinked.values()].sort((a, b) => b.last.date.localeCompare(a.last.date));
+  $("#unlinkedN").textContent = UNLINKED.length;
+  const limit = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+  CMP = [...byProd.values()].map(({ p, lines }) => {
+    lines.sort((a, b) => a.date.localeCompare(b.date));
+    const sup = new Map();
+    lines.forEach(l => { const k = supKey(l.supplier) || l.supplier; sup.set(k, l); }); // 仕入先ごとの最新
+    const latestBy = [...sup.values()].map(l => ({ ...l, old: l.date < limit }));
+    const priced = latestBy.filter(l => l.perYen != null).sort((a, b) => a.perYen - b.perYen);
+    const best = priced[0] || null;
+    const last = lines[lines.length - 1] || null;
+    const lastIsBest = !!(best && last && supKey(last.supplier) === supKey(best.supplier));
+    return { p, lines, latestBy, priced, best, last, lastIsBest };
+  });
+}
+let UNLINKED = [];
+const diffTxt = (l, best) => { if (!best || l.perYen == null || l === best) return ""; const d = l.perYen - best.perYen;
+  return `+${fmtYen(d)}（+${(d / best.perYen * 100).toFixed(1)}%）`; };
+function drawCompare() {
+  const q = norm($("#cmQ").value), fl = $("#cmFilter").value;
+  const list = CMP.filter(c => (!q || norm(c.p.name + " " + c.latestBy.map(l => l.supplier + " " + l.name).join(" ")).includes(q)) &&
+    (fl === "notbest" ? (c.best && c.last && !c.lastIsBest) : fl === "multi" ? c.latestBy.length > 1 : true))
+    .sort((a, b) => (b.last?.date || "").localeCompare(a.last?.date || ""));
+  $("#cmCount").textContent = `${list.length} 商品`;
+  $("#cmEmpty").classList.toggle("hidden", list.length > 0);
+  $("#cmBody").innerHTML = list.map(c => {
+    const others = c.priced.slice(1).map(l => `${esc(l.supplier.slice(0, 18))} <span class="up">${diffTxt(l, c.best)}</span>`).join("<br>")
+      + c.latestBy.filter(l => l.perYen == null).map(l => `<br>${esc(l.supplier.slice(0, 18))} <span class="sub">（為替レート未設定）</span>`).join("");
+    return `<tr data-pid="${c.p.id}">
+      <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis"><b>${esc(c.p.name)}</b></td><td>1${esc(c.p.compare_unit)}</td>
+      <td>${c.best ? `<span class="tag best">最安</span> ${esc(c.best.supplier)} ${c.best.old ? `<span class="tag old">古い価格</span>` : ""}` : `<span class="sub">比べられる価格なし</span>`}</td>
+      <td class="num">${c.best ? fmtYen(c.best.perYen) : ""}<div class="sub">${c.best ? fmtPrice(c.best.per) + " " + esc(c.best.currency) + "・" + esc(c.best.date) : ""}</div></td>
+      <td style="white-space:normal;min-width:220px;font-size:12px">${others || `<span class="sub">—</span>`}</td>
+      <td>${c.last ? `${esc(c.last.date)}<br>${c.best ? (c.lastIsBest ? `<span class="tag done">最安で購入</span>` : `<span class="tag need">最安ではない</span>`) : ""}` : ""}</td>
+      <td class="num">${c.latestBy.length}</td></tr>`; }).join("");
+  document.querySelectorAll("#cmBody tr").forEach(tr => tr.onclick = () => openCompare(tr.dataset.pid));
+}
+
+function openCompare(pid) {
+  const c = CMP.find(x => x.p.id === pid); if (!c) return;
+  const aliases = Object.values(PA).filter(a => a.product_id === pid);
+  $("#modalBox").innerHTML = `
+    <h3>${esc(c.p.name)}</h3>
+    <div class="meta">比べる単位：1${esc(c.p.compare_unit)}　／　まとめた商品名 ${aliases.length}件</div>
+    <h4>仕入先ごとの最新単価（1${esc(c.p.compare_unit)}あたり・安い順）</h4>
+    <div class="tablewrap"><table class="ledger">
+      <thead><tr><th></th><th>取引先</th><th>最終仕入日</th><th style="text-align:right">請求書の単価</th><th style="text-align:right">1${esc(c.p.compare_unit)}あたり</th><th style="text-align:right">円換算</th><th style="text-align:right">最安との差</th></tr></thead>
+      <tbody>${[...c.priced, ...c.latestBy.filter(l => l.perYen == null)].map((l, i) => `<tr>
+        <td>${i === 0 && l.perYen != null ? `<span class="tag best">最安</span>` : ""}${l.old ? ` <span class="tag old">古い価格</span>` : ""}</td>
+        <td>${esc(l.supplier)}</td><td class="mono">${esc(l.date)}</td>
+        <td class="num">${fmtPrice(l.price)} ${esc(l.currency)}${l.units !== 1 ? `<div class="sub">÷${fmtQty(l.units)}</div>` : ""}</td>
+        <td class="num">${fmtPrice(l.per)} ${esc(l.currency)}</td><td class="num">${l.perYen == null ? `<span class="sub">レート未設定</span>` : fmtYen(l.perYen)}</td>
+        <td class="num up">${diffTxt(l, c.best)}</td></tr>`).join("")}</tbody></table></div>
+    <h4>仕入の履歴（新しい順）</h4>
+    <div class="tablewrap" style="max-height:260px"><table class="ledger">
+      <thead><tr><th>請求日</th><th>取引先</th><th>請求書番号</th><th style="text-align:right">数量</th><th style="text-align:right">1${esc(c.p.compare_unit)}あたり</th><th style="text-align:right">円換算</th></tr></thead>
+      <tbody>${[...c.lines].reverse().map(l => `<tr><td class="mono">${esc(l.date)}</td><td>${esc(l.supplier)}</td><td class="mono">${esc(l.invoice_no)}</td>
+        <td class="num">${fmtQty(l.qty)} ${esc(l.unit ?? "")}</td><td class="num">${fmtPrice(l.per)} ${esc(l.currency)}</td><td class="num">${fmtYen(l.perYen)}</td></tr>`).join("")}</tbody></table></div>
+    <h4>まとめた商品名</h4>
+    <div class="tablewrap"><table class="ledger"><thead><tr><th>取引先</th><th>請求書の商品名</th><th style="text-align:right">請求書の1単位＝</th><th></th></tr></thead>
+      <tbody>${aliases.map(a => `<tr><td>${esc(a.supplier ?? "")}</td><td style="white-space:normal">${esc(a.description ?? "")}</td>
+        <td class="num">${fmtQty(a.units)}${esc(c.p.compare_unit)}</td><td><button class="btn" data-unlink="${esc(a.alias_key)}">外す</button></td></tr>`).join("")}</tbody></table></div>
+    <div class="actions">
+      <button class="btn" id="cpRename">商品名・単位を変える</button>
+      <span style="flex:1"></span><button class="btn" id="cpClose">閉じる</button>
+    </div>`;
+  $("#modal").classList.remove("hidden");
+  $("#cpClose").onclick = closeModal;
+  $("#cpRename").onclick = async () => {
+    const name = prompt("まとめた商品名", c.p.name); if (name === null || !name.trim()) return;
+    const unit = prompt("比べる単位（本・箱・ml など）", c.p.compare_unit); if (unit === null || !unit.trim()) return;
+    const { error } = await sb.from("price_products").update({ name: name.trim(), compare_unit: unit.trim() }).eq("id", pid);
+    if (error) { alert("保存に失敗しました：" + error.message); return; }
+    c.p.name = name.trim(); c.p.compare_unit = unit.trim(); buildCompare(); drawCompare(); openCompare(pid);
+  };
+  $("#modalBox").querySelectorAll("[data-unlink]").forEach(b => b.onclick = async () => {
+    if (!confirm("この商品名を、まとめから外しますか？（請求書のデータは変わりません）")) return;
+    const { error } = await sb.from("price_aliases").delete().eq("alias_key", b.dataset.unlink);
+    if (error) { alert("失敗しました：" + error.message); return; }
+    delete PA[b.dataset.unlink]; buildCompare(); drawCompare();
+    if (Object.values(PA).some(a => a.product_id === pid)) openCompare(pid); else closeModal();
+  });
+}
+
+// ---------- まとめる（名寄せ） ----------
+const tokens = (s) => new Set(String(s ?? "").toUpperCase().replace(/\(.*?\)/g, " ").split(/[^A-Z0-9\u3040-\u30FF\u4E00-\u9FFF]+/).filter(t => t.length >= 2 && !/^(SKU|GTIN|ML|X|PCS|EA)$/.test(t)));
+function suggest(name) {
+  const t = tokens(name); let best = null, bs = 0;
+  PP.forEach(p => {
+    const cands = [p.name, ...Object.values(PA).filter(a => a.product_id === p.id).map(a => a.description)];
+    cands.forEach(c => { const u = tokens(c); let n = 0; t.forEach(x => { if (u.has(x)) n++; }); const sc = n >= 2 ? n / Math.max(1, Math.min(t.size, u.size)) : 0; if (sc > bs) { bs = sc; best = p; } });
+  });
+  return bs >= 0.75 ? best : null;
+}
+$("#linkBtn").onclick = () => openLinker();
+function openLinker() {
+  const opts = PP.slice().sort((a, b) => a.name.localeCompare(b.name, "ja")).map(p => `<option value="${p.id}">${esc(p.name)}（1${esc(p.compare_unit)}）</option>`).join("");
+  $("#modalBox").innerHTML = `
+    <h3>まとめていない商品名（${UNLINKED.length}件）</h3>
+    <div class="meta">同じ商品は、同じ「まとめた商品」を選んでください。新しい商品なら「＋新しい商品として作る」を選びます。<br>
+      「請求書の1単位＝」には、請求書の数量1つが比べる単位いくつにあたるかを入れます（例：1箱に5本入りで、比べる単位が「本」なら 5）。</div>
+    <div style="max-height:60vh;overflow:auto">${UNLINKED.map((u, i) => { const sg = suggest(u.name); return `<div class="cand" data-i="${i}">
+      <div><b style="font-weight:500">${esc(u.name)}</b><div class="sub">${esc(u.supplier)}　/　${fmtPrice(u.last.price)} ${esc(u.last.currency)}（${esc(u.last.date)}・${u.count}回）</div></div>
+      <div><select class="lkSel"><option value="">（まだまとめない）</option><option value="__new">＋新しい商品として作る</option>${opts}</select>
+        <input class="lkNew hidden" placeholder="まとめた商品名" value="${esc(u.name.replace(/\s*\(.*$/, ""))}" style="margin-top:4px">
+        <input class="lkUnitName hidden" placeholder="比べる単位（例：本）" value="本" style="margin-top:4px"></div>
+      <div><input class="lkUnits" value="1" title="請求書の1単位＝比べる単位いくつ" style="text-align:right"></div>
+      <div class="sub">${sg ? "候補あり" : ""}</div></div>`; }).join("") || `<div class="empty">すべてまとめ済みです</div>`}</div>
+    <div class="actions"><button class="btn" id="lkClose">閉じる</button><button class="btn primary" id="lkSave">選んだものを保存</button></div>`;
+  $("#modal").classList.remove("hidden");
+  // 候補を最初から選んでおく
+  $("#modalBox").querySelectorAll(".cand").forEach(row => {
+    const u = UNLINKED[Number(row.dataset.i)], sg = suggest(u.name), sel = row.querySelector(".lkSel");
+    if (sg) sel.value = sg.id;
+    sel.onchange = () => { const n = sel.value === "__new"; row.querySelector(".lkNew").classList.toggle("hidden", !n); row.querySelector(".lkUnitName").classList.toggle("hidden", !n); };
+  });
+  $("#lkClose").onclick = closeModal;
+  $("#lkSave").onclick = async (e) => {
+    const btn = e.target; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>保存中…';
+    try {
+      const newByName = {};
+      const rows = [...$("#modalBox").querySelectorAll(".cand")];
+      for (const row of rows) {
+        const u = UNLINKED[Number(row.dataset.i)], v = row.querySelector(".lkSel").value;
+        if (!v) continue;
+        let pid = v;
+        if (v === "__new") {
+          const nm = row.querySelector(".lkNew").value.trim() || u.name, un = row.querySelector(".lkUnitName").value.trim() || "本";
+          if (newByName[nm]) pid = newByName[nm];
+          else {
+            const { data, error } = await sb.from("price_products").insert({ name: nm, compare_unit: un }).select().single();
+            if (error) throw error; PP.push(data); pid = newByName[nm] = data.id;
+          }
+        }
+        const units = Number(String(row.querySelector(".lkUnits").value).replace(/,/g, "")) || 1;
+        const rec = { alias_key: u.key, supplier: u.supplier, description: u.name, product_id: pid, units };
+        const { error } = await sb.from("price_aliases").upsert(rec, { onConflict: "alias_key" });
+        if (error) throw error; PA[u.key] = rec;
+      }
+      buildCompare(); drawCompare(); closeModal();
+    } catch (err) { alert("保存に失敗しました：" + (err.message || err)); btn.disabled = false; btn.textContent = "選んだものを保存"; }
+  };
+}
+
+// =========================================================
+// 販売価格（受注台帳の bcart_orders を読むだけ）
+// =========================================================
+let SP_ROWS = [], SP_LIST = [];
+const yen = (n) => n == null ? "" : "¥" + Math.round(n).toLocaleString("ja-JP");
+async function loadSalesPrices() {
+  $("#spCount").innerHTML = '<span class="spinner"></span>読み込み中…';
+  const out = [];
+  try {
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await sb.from("bcart_orders").select("order_date,product_code,product_name,qty,unit,unit_price,customer,order_status,order_no").range(from, from + 999);
+      if (error) throw error;
+      out.push(...data); if (data.length < 1000) break;
+    }
+  } catch (e) { $("#spCount").textContent = ""; alert("受注データを読めませんでした（受注台帳に受注CSVを取り込んでいるか確認してください）：" + e.message); return; }
+  SP_ROWS = out.filter(r => r.order_status !== "キャンセル" && Number(r.unit_price) > 0);
+  drawSalesPrices();
+}
+["spQ", "spDays", "spSort"].forEach(id => $("#" + id).addEventListener("input", drawSalesPrices));
+function drawSalesPrices() {
+  const days = Number($("#spDays").value);
+  const since = days ? new Date(Date.now() - days * 86400000).toISOString().slice(0, 10) : "";
+  const map = new Map();
+  SP_ROWS.forEach(r => {
+    if (since && (r.order_date || "") < since) return;
+    const k = r.product_code ? "C:" + prKey(r.product_code) : "N:" + prKey(r.product_name);
+    const g = map.get(k) || { key: k, code: r.product_code, name: r.product_name, unit: r.unit, rows: [], last: null };
+    g.rows.push(r);
+    if (!g.last || (r.order_date || "") >= (g.last.order_date || "")) { g.last = r; g.name = r.product_name; g.unit = r.unit || g.unit; }
+    map.set(k, g);
+  });
+  SP_LIST = [...map.values()].map(g => {
+    const n = g.rows.reduce((a, r) => a + (Number(r.qty) || 0), 0);
+    const prices = g.rows.map(r => Number(r.unit_price));
+    return { ...g, n, avg: n ? g.rows.reduce((a, r) => a + Number(r.unit_price) * (Number(r.qty) || 0), 0) / n : null,
+      min: Math.min(...prices), max: Math.max(...prices), clinics: new Set(g.rows.map(r => r.customer)).size };
+  });
+  const q = norm($("#spQ").value), so = $("#spSort").value;
+  const list = SP_LIST.filter(g => !q || norm(g.name + " " + (g.code || "")).includes(q));
+  list.sort(so === "date" ? (a, b) => (b.last.order_date || "").localeCompare(a.last.order_date || "")
+    : so === "spread" ? (a, b) => (b.max - b.min) / b.max - (a.max - a.min) / a.max
+    : so === "name" ? (a, b) => byAlpha(a.name, b.name) : so === "nameDesc" ? (a, b) => byAlpha(b.name, a.name)
+    : so === "kana" ? (a, b) => byKana(a.name, b.name) : so === "kanaDesc" ? (a, b) => byKana(b.name, a.name) : (a, b) => b.n - a.n);
+  $("#spCount").textContent = `${list.length} 商品`;
+  $("#spEmpty").classList.toggle("hidden", list.length > 0);
+  $("#spBody").innerHTML = list.map(g => `<tr data-k="${esc(g.key)}">
+    <td style="max-width:340px;overflow:hidden;text-overflow:ellipsis" title="${esc(g.name)}">${esc(g.name)}</td>
+    <td class="mono">${esc(g.code ?? "")}</td><td class="mono">${esc(g.last.order_date ?? "")}</td>
+    <td class="num">${yen(g.last.unit_price)}<span class="sub">／${esc(g.unit ?? "")}</span></td>
+    <td class="num">${yen(g.avg)}</td><td class="num">${yen(g.min)}</td><td class="num">${yen(g.max)}</td>
+    <td class="num">${fmtQty(g.n)}</td><td class="num">${g.clinics}</td></tr>`).join("");
+  document.querySelectorAll("#spBody tr").forEach(tr => tr.onclick = () => openSalesPrice(tr.dataset.k));
+}
+function openSalesPrice(key) {
+  const g = SP_LIST.find(x => x.key === key); if (!g) return;
+  const byC = new Map();
+  g.rows.forEach(r => { const c = r.customer || "（不明）"; const x = byC.get(c) || { name: c, n: 0, rev: 0, last: null };
+    x.n += Number(r.qty) || 0; x.rev += Number(r.unit_price) * (Number(r.qty) || 0);
+    if (!x.last || (r.order_date || "") >= (x.last.order_date || "")) x.last = r; byC.set(c, x); });
+  const cl = [...byC.values()].sort((a, b) => Number(a.last.unit_price) - Number(b.last.unit_price));
+  const hist = [...g.rows].sort((a, b) => (b.order_date || "").localeCompare(a.order_date || ""));
+  $("#modalBox").innerHTML = `
+    <h3>${esc(g.name)}</h3>
+    <div class="meta">${g.code ? "商品管理番号 " + esc(g.code) + "　／　" : ""}期間：${esc($("#spDays").selectedOptions[0].text)}　／　単位：${esc(g.unit ?? "")}</div>
+    <div class="pstats">
+      <div><div class="l">最新の販売単価</div><div class="v">${yen(g.last.unit_price)}</div></div>
+      <div><div class="l">平均（数量で加重）</div><div class="v">${yen(g.avg)}</div></div>
+      <div><div class="l">最安</div><div class="v">${yen(g.min)}</div></div>
+      <div><div class="l">最高</div><div class="v">${yen(g.max)}</div></div>
+    </div>
+    <h4>医院ごとの販売単価（最新の単価が安い順）</h4>
+    <div class="tablewrap" style="max-height:280px"><table class="ledger">
+      <thead><tr><th>医院名</th><th style="text-align:right">最新の単価</th><th style="text-align:right">平均</th><th style="text-align:right">販売数</th><th>最終受注日</th></tr></thead>
+      <tbody>${cl.map(x => `<tr><td>${esc(x.name)}</td><td class="num">${yen(x.last.unit_price)}</td><td class="num">${yen(x.n ? x.rev / x.n : null)}</td>
+        <td class="num">${fmtQty(x.n)}</td><td class="mono">${esc(x.last.order_date ?? "")}</td></tr>`).join("")}</tbody></table></div>
+    <h4>販売の履歴（新しい順）</h4>
+    <div class="tablewrap" style="max-height:280px"><table class="ledger">
+      <thead><tr><th>受注日</th><th>医院名</th><th style="text-align:right">数量</th><th style="text-align:right">単価</th><th>受注番号</th></tr></thead>
+      <tbody>${hist.map(r => `<tr><td class="mono">${esc(r.order_date ?? "")}</td><td>${esc(r.customer ?? "")}</td><td class="num">${fmtQty(r.qty)}</td>
+        <td class="num">${yen(r.unit_price)}</td><td class="mono">${esc(r.order_no ?? "")}</td></tr>`).join("")}</tbody></table></div>
+    <div class="actions"><button class="btn" id="spClose">閉じる</button></div>`;
+  $("#modal").classList.remove("hidden");
+  $("#spClose").onclick = closeModal;
+}
+document.querySelectorAll("th.sortable").forEach(th => th.onclick = () => {
+  const sel = $("#" + th.dataset.sortfor), order = ["name", "kana"];
+  const i = order.indexOf(sel.value);
+  sel.value = i < 0 ? "name" : i === 0 ? "kana" : sel.options[0].value;
+  sel.dispatchEvent(new Event("input"));
+});
+
+$("#spCsv").onclick = () => {
+  const head = ["商品名", "商品管理番号", "最終受注日", "最新の販売単価", "平均", "最安", "最高", "販売数", "医院数"];
+  const lines = [head, ...SP_LIST.map(g => [g.name, g.code, g.last.order_date, g.last.unit_price, g.avg == null ? "" : Math.round(g.avg), g.min, g.max, g.n, g.clinics])];
+  const csv = lines.map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv" }));
+  a.download = `販売価格_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+};
+
+// =========================================================
+// 粗利（仕入と販売を自分で紐づける。紐づけは profit_links に保存、元のデータは読むだけ）
+// =========================================================
+let AR_LINKS = [], AR_ROWS = [], BUY_ITEMS = [], SELL_ITEMS = [];
+let arWarnVal = 20;
+try { const v = localStorage.getItem("ar_warn"); if (v) arWarnVal = Number(v); } catch (_) {}
+$("#arWarn").value = arWarnVal;
+["arQ", "arDays", "arSort", "arWarn"].forEach(id => $("#" + id).addEventListener("input", () => {
+  if (id === "arWarn") { arWarnVal = Number($("#arWarn").value) || 0; try { localStorage.setItem("ar_warn", arWarnVal); } catch (_) {} }
+  drawArari();
+}));
+document.querySelectorAll('th.sortable[data-sortfor="arSort"]').forEach(th => th.onclick = () => {
+  const sel = $("#arSort"); sel.value = sel.value === "name" ? "kana" : sel.value === "kana" ? "rate" : "name"; drawArari();
+});
+
+async function loadArari() {
+  $("#arCount").innerHTML = '<span class="spinner"></span>読み込み中…';
+  await loadPrices();
+  await loadSalesPrices();
+  const { data, error } = await sb.from("profit_links").select("*").order("created_at");
+  if (error) { $("#arCount").textContent = ""; alert("読み込みに失敗しました：" + error.message); return; }
+  AR_LINKS = data || [];
+  // 仕入の商品（取引先＋商品名ごとの最新）
+  const bm = new Map();
+  PR_LINES.forEach(l => { const k = aliasKey(l.supplier, l.name); const g = bm.get(k);
+    if (!g || l.date >= g.last.date) bm.set(k, { key: k, supplier: l.supplier, name: l.name, last: l }); });
+  BUY_ITEMS = [...bm.values()].sort((a, b) => byAlpha(a.name, b.name)).map(b => ({ ...b,
+    label: `${b.name} ／ ${b.supplier} ／ ${fmtPrice(b.last.price)} ${b.last.currency}` }));
+  // 販売の商品
+  const sm = new Map();
+  SP_ROWS.forEach(r => { const k = r.product_code ? "C:" + prKey(r.product_code) : "N:" + prKey(r.product_name);
+    const g = sm.get(k) || { key: k, code: r.product_code, name: r.product_name, rows: [] }; g.rows.push(r);
+    if ((r.order_date || "") >= (g.lastDate || "")) { g.lastDate = r.order_date || ""; g.name = r.product_name; } sm.set(k, g); });
+  SELL_ITEMS = [...sm.values()].sort((a, b) => byAlpha(a.name, b.name)).map(g => ({ ...g, label: `${g.name}${g.code ? " ［" + g.code + "］" : ""}` }));
+  drawArari();
+}
+
+function computeLink(L) {
+  const b = BUY_ITEMS.find(x => x.key === L.buy_key), s = SELL_ITEMS.find(x => x.key === L.sell_key);
+  const days = Number($("#arDays").value);
+  const since = days ? new Date(Date.now() - days * 86400000).toISOString().slice(0, 10) : "";
+  const factor = Number(L.factor) || 1;
+  const unitYen = b ? jpy(b.last.price, b.last.currency) : null;
+  const cost = unitYen == null ? null : unitYen * factor;
+  const rows = s ? s.rows.filter(r => !since || (r.order_date || "") >= since) : [];
+  const n = rows.reduce((a, r) => a + (Number(r.qty) || 0), 0);
+  const avg = n ? rows.reduce((a, r) => a + Number(r.unit_price) * (Number(r.qty) || 0), 0) / n : null;
+  const latest = s ? s.rows.slice().sort((a, b) => (b.order_date || "").localeCompare(a.order_date || ""))[0] : null;
+  const gp = (avg != null && cost != null) ? avg - cost : null;
+  const rate = (gp != null && avg) ? gp / avg * 100 : null;
+  const lossN = cost != null ? rows.filter(r => Number(r.unit_price) < cost).length : 0;
+  return { L, b, s, factor, cost, n, avg, latest, gp, rate, amount: gp != null ? gp * n : null, lossN,
+    name: L.label || (s ? s.name : L.sell_name) || L.buy_name };
+}
+function drawArari() {
+  AR_ROWS = AR_LINKS.map(computeLink);
+  const q = norm($("#arQ").value), so = $("#arSort").value;
+  const list = AR_ROWS.filter(x => !q || norm([x.name, x.L.buy_name, x.L.buy_supplier, x.L.sell_name, x.L.memo].join(" ")).includes(q));
+  list.sort(so === "rateDesc" ? (a, b) => (b.rate ?? -1e9) - (a.rate ?? -1e9)
+    : so === "amount" ? (a, b) => (b.amount ?? -1e15) - (a.amount ?? -1e15)
+    : so === "name" ? (a, b) => byAlpha(a.name, b.name) : so === "kana" ? (a, b) => byKana(a.name, b.name)
+    : (a, b) => (a.rate ?? 1e9) - (b.rate ?? 1e9));
+  $("#arCount").textContent = `${list.length} 件`;
+  $("#arEmpty").classList.toggle("hidden", list.length > 0);
+  const neg = (v) => v == null ? "" : (v < 0 ? "−" : "") + yen(Math.abs(v));
+  $("#arBody").innerHTML = list.map(x => `<tr class="${x.lossN ? "lossrow" : ""}">
+    <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis" title="${esc(x.name)}"><b style="font-weight:500">${esc(x.name)}</b>
+      ${x.factor !== 1 ? `<div class="sub">販売1個＝仕入${fmtQty(x.factor)}個</div>` : ""}</td>
+    <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis" title="${esc(x.L.buy_name ?? "")}">${esc(x.L.buy_supplier ?? "")}
+      <div class="sub">${x.b ? fmtPrice(x.b.last.price) + " " + esc(x.b.last.currency) + "・" + esc(x.b.last.date) : "仕入データなし"}</div></td>
+    <td class="num">${x.cost == null ? `<span class="sub">${x.b ? "レート未設定" : "—"}</span>` : yen(x.cost)}</td>
+    <td class="num">${x.avg == null ? `<span class="sub">販売なし</span>` : yen(x.avg)}</td>
+    <td class="num">${x.latest ? yen(x.latest.unit_price) : ""}</td>
+    <td class="num ${x.gp != null && x.gp < 0 ? "up" : ""}">${neg(x.gp)}</td>
+    <td class="num ${x.rate != null && x.rate < arWarnVal ? "up" : ""}">${x.rate == null ? "" : x.rate.toFixed(1) + "%"}${x.lossN ? `<div><span class="tag loss">仕入割れ ${x.lossN}件</span></div>` : ""}</td>
+    <td class="num">${fmtQty(x.n)}</td><td class="num">${neg(x.amount)}</td>
+    <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis" title="${esc(x.L.memo ?? "")}">${esc(x.L.memo ?? "")}</td>
+    <td style="white-space:nowrap"><button class="btn" style="padding:4px 10px;font-size:12px" data-ared="${x.L.id}">修正</button> <button class="btn danger" style="padding:4px 10px;font-size:12px" data-ardel="${x.L.id}">削除</button></td></tr>`).join("");
+  $("#arBody").querySelectorAll("[data-ared]").forEach(b => b.onclick = () => openArari(AR_LINKS.find(l => l.id === b.dataset.ared)));
+  $("#arBody").querySelectorAll("[data-ardel]").forEach(b => b.onclick = async () => {
+    const L = AR_LINKS.find(l => l.id === b.dataset.ardel); if (!L) return;
+    if (!confirm(`「${L.label || L.sell_name}」の紐づけを削除しますか？\n（仕入・販売のデータは消えません）`)) return;
+    const { error } = await sb.from("profit_links").delete().eq("id", L.id);
+    if (error) { alert("削除に失敗しました：" + error.message); return; }
+    AR_LINKS = AR_LINKS.filter(l => l.id !== L.id); drawArari();
+  });
+}
+
+$("#arAdd").onclick = () => openArari(null);
+function openArari(L) {
+  const b0 = L ? BUY_ITEMS.find(x => x.key === L.buy_key) : null, s0 = L ? SELL_ITEMS.find(x => x.key === L.sell_key) : null;
+  $("#modalBox").innerHTML = `
+    <h3>${L ? "紐づけを修正" : "紐づけを追加"}</h3>
+    <div class="meta">仕入の商品と、それを売っている販売の商品を選びます。欄に商品名・取引先・商品管理番号を入れると候補が出ます。</div>
+    <datalist id="buyList">${BUY_ITEMS.map(b => `<option value="${esc(b.label)}">`).join("")}</datalist>
+    <datalist id="sellList">${SELL_ITEMS.map(s => `<option value="${esc(s.label)}">`).join("")}</datalist>
+    <div class="grid" style="grid-template-columns:1fr">
+      <div class="f"><label>仕入（請求書の商品 ／ 取引先 ／ 最新単価）</label><input id="arBuy" list="buyList" value="${esc(b0 ? b0.label : (L ? L.buy_name + " ／ " + L.buy_supplier : ""))}" placeholder="例：jalupro"></div>
+      <div class="f"><label>販売（Bカートの商品）</label><input id="arSell" list="sellList" value="${esc(s0 ? s0.label : (L ? L.sell_name : ""))}" placeholder="例：SB006"></div>
+    </div>
+    <div class="grid">
+      <div class="f"><label>販売1個 ＝ 仕入何個（入数が違うときだけ変更）</label><input id="arFactor" class="num" value="${L ? Number(L.factor) : 1}"></div>
+      <div class="f"><label>表示名（空なら販売の商品名）</label><input id="arLabel" value="${esc(L?.label ?? "")}"></div>
+      <div class="f wide"><label>メモ</label><input id="arMemo" value="${esc(L?.memo ?? "")}"></div>
+    </div>
+    <div class="sub" style="margin-top:6px">例：仕入は1箱単位で、Bカートは「1セット＝10箱」で売っている → 10</div>
+    <div id="arPrev" class="alerts"></div>
+    <div class="actions"><button class="btn" id="arCancel">閉じる</button><button class="btn primary" id="arSave">保存</button></div>`;
+  $("#modal").classList.remove("hidden");
+  const find = () => ({ b: BUY_ITEMS.find(x => x.label === $("#arBuy").value.trim()), s: SELL_ITEMS.find(x => x.label === $("#arSell").value.trim()),
+    f: Number(String($("#arFactor").value).replace(/,/g, "")) || 1 });
+  const preview = () => {
+    const { b, s, f } = find();
+    if (b && !s && !$("#arSell").value.trim()) { const sg = suggestBcart(b.name, SELL_ITEMS); if (sg) { $("#arSell").value = sg.b.label; return preview(); } }
+    if (!b || !s) { $("#arPrev").innerHTML = ""; return; }
+    const x = computeLink({ buy_key: b.key, sell_key: s.key, factor: f });
+    $("#arPrev").innerHTML = `<div class="alert info">仕入単価 ${x.cost == null ? "（為替レート未設定）" : yen(x.cost)}　／　販売単価（平均） ${x.avg == null ? "（販売なし）" : yen(x.avg)}
+      ${x.rate == null ? "" : `　／　<b>粗利率 ${x.rate.toFixed(1)}%</b>（1個あたり ${yen(x.gp)}）`}</div>`;
+  };
+  ["arBuy", "arSell", "arFactor"].forEach(id => $("#" + id).addEventListener("input", preview)); preview();
+  $("#arCancel").onclick = closeModal;
+  $("#arSave").onclick = async () => {
+    const { b, s, f } = find();
+    if (!b) { alert("仕入の商品を、候補の中から選んでください"); return; }
+    if (!s) { alert("販売の商品を、候補の中から選んでください"); return; }
+    const rec = { label: $("#arLabel").value.trim() || null, buy_key: b.key, buy_supplier: b.supplier, buy_name: b.name,
+      sell_key: s.key, sell_code: s.code, sell_name: s.name, factor: f, memo: $("#arMemo").value.trim() || null, updated_at: new Date().toISOString() };
+    const q = L ? sb.from("profit_links").update(rec).eq("id", L.id).select().single() : sb.from("profit_links").insert(rec).select().single();
+    const { data, error } = await q;
+    if (error) { alert("保存に失敗しました：" + error.message); return; }
+    AR_LINKS = L ? AR_LINKS.map(x => x.id === L.id ? data : x) : [...AR_LINKS, data];
+    closeModal(); drawArari();
+  };
+}
+$("#arCsv").onclick = () => {
+  const head = ["商品", "仕入の商品", "仕入の取引先", "販売の商品", "販売1個＝仕入何個", "仕入単価(円)", "販売単価・平均(円)", "最新の販売単価(円)", "1個の粗利(円)", "粗利率(%)", "販売数", "粗利額(円)", "メモ"];
+  const r0 = (v) => v == null ? "" : Math.round(v);
+  const lines = [head, ...AR_ROWS.map(x => [x.name, x.L.buy_name, x.L.buy_supplier, x.L.sell_name, x.factor, r0(x.cost), r0(x.avg), x.latest ? x.latest.unit_price : "",
+    r0(x.gp), x.rate == null ? "" : x.rate.toFixed(1), x.n, r0(x.amount), x.L.memo])];
+  const csv = lines.map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv" }));
+  a.download = `粗利_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+};
+
+// =========================================================
+// 利益（仕入：請求書の明細／販売：受注台帳の bcart_orders を読むだけ）
+// =========================================================
+let SALES = [], SA = {}, PROFIT = [], S_UNLINKED = [];
+const salesKey = (code, name) => code ? "C:" + prKey(code) : "N:" + prKey(name);
+let pfWarnVal = 20;
+try { const v = localStorage.getItem("pf_warn"); if (v) pfWarnVal = Number(v); } catch (_) {}
+$("#pfWarn").value = pfWarnVal;
+["pfDays", "pfCost", "pfWarn", "pfQ", "pfFilter", "pfSort"].forEach(id => $("#" + id).addEventListener("input", () => {
+  if (id === "pfWarn") { pfWarnVal = Number($("#pfWarn").value) || 0; try { localStorage.setItem("pf_warn", pfWarnVal); } catch (_) {} }
+  buildProfit(); drawProfit();
+}));
+
+async function loadProfit() {
+  $("#pfCount").innerHTML = '<span class="spinner"></span>読み込み中…';
+  await loadPrices();
+  const out = [];
+  try {
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await sb.from("bcart_orders").select("order_date,product_code,product_name,qty,irisu,unit,unit_price,customer,order_status,order_no").range(from, from + 999);
+      if (error) throw error;
+      out.push(...data); if (data.length < 1000) break;
+    }
+  } catch (e) { $("#pfCount").textContent = ""; alert("受注データを読めませんでした（受注台帳を使っていない場合は表示できません）：" + e.message); return; }
+  const { data: sa } = await sb.from("sales_aliases").select("*");
+  SA = {}; (sa || []).forEach(a => SA[a.alias_key] = a);
+  SALES = out.filter(r => r.order_status !== "キャンセル" && Number(r.unit_price) > 0);
+  buildProfit(); drawProfit(); updateEasyCount();
+}
+
+function costOf(c, mode) {
+  const priced = c.lines.filter(l => l.perYen != null);
+  if (!priced.length) return null;
+  if (mode === "last") return priced[priced.length - 1].perYen;
+  if (mode === "best") return c.best ? c.best.perYen : null;
+  const since = new Date(Date.now() - 180 * 86400000).toISOString().slice(0, 10);
+  const rec = priced.filter(l => l.date >= since);
+  const use = rec.length ? rec : priced.slice(-1);
+  const w = use.reduce((a, l) => a + (Number(l.qty) || 1) * l.units, 0);
+  return use.reduce((a, l) => a + l.perYen * (Number(l.qty) || 1) * l.units, 0) / w;
+}
+
+function buildProfit() {
+  const since = new Date(Date.now() - Number($("#pfDays").value) * 86400000).toISOString().slice(0, 10);
+  const mode = $("#pfCost").value;
+  const byProd = new Map(CMP.map(c => [c.p.id, { c, sales: [] }]));
+  const unl = new Map();
+  SALES.forEach(r => {
+    const k = salesKey(r.product_code, r.product_name), a = SA[k];
+    if (a && byProd.has(a.product_id)) {
+      if ((r.order_date || "") < since) return;
+      const units = Number(a.units) || 1, n = (Number(r.qty) || 0) * units;
+      byProd.get(a.product_id).sales.push({ ...r, units, n, per: Number(r.unit_price) / units });
+    } else {
+      const u = unl.get(k) || { key: k, code: r.product_code, name: r.product_name, unit: r.unit, price: r.unit_price, last: r.order_date || "", qty: 0 };
+      u.qty += Number(r.qty) || 0; if ((r.order_date || "") >= u.last) { u.last = r.order_date || ""; u.name = r.product_name; u.price = r.unit_price; }
+      unl.set(k, u);
+    }
+  });
+  S_UNLINKED = [...unl.values()].sort((a, b) => b.qty - a.qty);
+  $("#sUnlinkedN").textContent = S_UNLINKED.length;
+  PROFIT = [...byProd.values()].map(({ c, sales }) => {
+    const cost = costOf(c, mode);
+    const n = sales.reduce((a, s) => a + s.n, 0);
+    const rev = sales.reduce((a, s) => a + s.per * s.n, 0);
+    const avg = n ? rev / n : null;
+    const min = sales.length ? Math.min(...sales.map(s => s.per)) : null;
+    const gp = (avg != null && cost != null) ? avg - cost : null;
+    const rate = (gp != null && avg) ? gp / avg * 100 : null;
+    const lossN = cost != null ? sales.filter(s => s.per < cost).length : 0;
+    return { c, sales, cost, n, avg, min, gp, rate, amount: gp != null ? gp * n : null, lossN };
+  }).filter(x => x.sales.length || Object.values(SA).some(a => a.product_id === x.c.p.id));
+}
+function stateTag(x) {
+  if (x.cost == null) return `<span class="sub">仕入単価なし</span>`;
+  if (!x.sales.length) return `<span class="sub">期間内の販売なし</span>`;
+  if (x.lossN) return `<span class="tag loss">仕入割れ ${x.lossN}件</span>`;
+  if (x.rate < pfWarnVal) return `<span class="tag low">粗利率 低め</span>`;
+  return `<span class="tag done">OK</span>`;
+}
+function drawProfit() {
+  const q = norm($("#pfQ").value), fl = $("#pfFilter").value, so = $("#pfSort").value;
+  const list = PROFIT.filter(x => (!q || norm(x.c.p.name).includes(q)) &&
+    (fl === "loss" ? x.lossN > 0 : fl === "low" ? (x.rate != null && x.rate < pfWarnVal) : true));
+  list.sort(so === "amount" ? (a, b) => (b.amount ?? -1e15) - (a.amount ?? -1e15)
+    : so === "qty" ? (a, b) => b.n - a.n
+    : (a, b) => (a.rate ?? 1e9) - (b.rate ?? 1e9));
+  $("#pfCount").textContent = `${list.length} 商品`;
+  $("#pfEmpty").classList.toggle("hidden", list.length > 0);
+  const u = (x) => esc(x.c.p.compare_unit);
+  $("#pfBody").innerHTML = list.map(x => `<tr class="${x.lossN ? "lossrow" : ""}" data-pid="${x.c.p.id}">
+    <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis"><b>${esc(x.c.p.name)}</b></td><td>1${u(x)}</td>
+    <td class="num">${fmtYen(x.cost)}</td><td class="num">${fmtYen(x.avg)}</td><td class="num">${fmtYen(x.min)}</td>
+    <td class="num ${x.gp != null && x.gp < 0 ? "up" : ""}">${x.gp == null ? "" : (x.gp < 0 ? "−" : "") + fmtYen(Math.abs(x.gp))}</td>
+    <td class="num ${x.rate != null && x.rate < pfWarnVal ? "up" : ""}">${x.rate == null ? "" : x.rate.toFixed(1) + "%"}</td>
+    <td class="num">${fmtQty(x.n)}</td><td class="num">${x.amount == null ? "" : (x.amount < 0 ? "−" : "") + fmtYen(Math.abs(x.amount))}</td>
+    <td>${stateTag(x)}</td></tr>`).join("");
+  document.querySelectorAll("#pfBody tr").forEach(tr => tr.onclick = () => openProfit(tr.dataset.pid));
+}
+function openProfit(pid) {
+  const x = PROFIT.find(y => y.c.p.id === pid); if (!x) return;
+  const unit = esc(x.c.p.compare_unit);
+  const byCust = new Map();
+  x.sales.forEach(s => { const k = s.customer || "（不明）"; const g = byCust.get(k) || { name: k, n: 0, rev: 0, min: Infinity, last: "" };
+    g.n += s.n; g.rev += s.per * s.n; g.min = Math.min(g.min, s.per); if ((s.order_date || "") > g.last) g.last = s.order_date; byCust.set(k, g); });
+  const cust = [...byCust.values()].map(g => ({ ...g, avg: g.rev / g.n })).sort((a, b) => a.avg - b.avg);
+  const rate = (p) => (x.cost == null || !p) ? "" : ((p - x.cost) / p * 100).toFixed(1) + "%";
+  $("#modalBox").innerHTML = `
+    <h3>${esc(x.c.p.name)}</h3>
+    <div class="meta">比べる単位：1${unit}　／　販売の期間：${esc($("#pfDays").selectedOptions[0].text)}　／　仕入単価：${esc($("#pfCost").selectedOptions[0].text)}</div>
+    <div class="pstats">
+      <div><div class="l">仕入単価（1${unit}）</div><div class="v">${fmtYen(x.cost)}</div></div>
+      <div><div class="l">平均販売単価</div><div class="v">${fmtYen(x.avg)}</div></div>
+      <div><div class="l">粗利率</div><div class="v">${x.rate == null ? "" : x.rate.toFixed(1) + "%"}</div></div>
+      <div><div class="l">粗利額（期間）</div><div class="v">${x.amount == null ? "" : fmtYen(x.amount)}</div></div>
+    </div>
+    <h4>医院ごとの販売単価（安い順）</h4>
+    <div class="tablewrap" style="max-height:300px"><table class="ledger">
+      <thead><tr><th>医院名</th><th style="text-align:right">販売数</th><th style="text-align:right">平均単価</th><th style="text-align:right">最安単価</th><th style="text-align:right">粗利率</th><th>最終受注日</th></tr></thead>
+      <tbody>${cust.map(g => `<tr class="${x.cost != null && g.min < x.cost ? "lossrow" : ""}"><td>${esc(g.name)}</td><td class="num">${fmtQty(g.n)}</td>
+        <td class="num">${fmtYen(g.avg)}</td><td class="num">${fmtYen(g.min)}</td><td class="num ${x.cost != null && (g.avg - x.cost) / g.avg * 100 < pfWarnVal ? "up" : ""}">${rate(g.avg)}</td><td class="mono">${esc(g.last)}</td></tr>`).join("")
+        || `<tr><td colspan="6" class="empty">期間内の販売はありません</td></tr>`}</tbody></table></div>
+    <h4>仕入先ごとの最新仕入単価</h4>
+    <div class="tablewrap"><table class="ledger"><tbody>${x.c.priced.map((l, i) => `<tr><td>${i === 0 ? `<span class="tag best">最安</span>` : ""}</td><td>${esc(l.supplier)}</td><td class="mono">${esc(l.date)}</td>
+      <td class="num">${fmtYen(l.perYen)}</td><td class="num">${x.avg ? "この仕入先なら粗利率 " + ((x.avg - l.perYen) / x.avg * 100).toFixed(1) + "%" : ""}</td></tr>`).join("") || `<tr><td class="empty">仕入の価格がありません（為替レート未設定の可能性）</td></tr>`}</tbody></table></div>
+    <h4>結び付けた販売商品</h4>
+    <div class="tablewrap"><table class="ledger"><tbody>${Object.values(SA).filter(a => a.product_id === pid).map(a => `<tr><td class="mono">${esc(a.product_code ?? "")}</td>
+      <td style="white-space:normal">${esc(a.product_name ?? "")}</td><td class="num">販売の1単位＝${fmtQty(a.units)}${unit}</td><td><button class="btn" data-sunlink="${esc(a.alias_key)}">外す</button></td></tr>`).join("")}</tbody></table></div>
+    <div class="actions"><button class="btn" id="pfClose">閉じる</button></div>`;
+  $("#modal").classList.remove("hidden");
+  $("#pfClose").onclick = closeModal;
+  $("#modalBox").querySelectorAll("[data-sunlink]").forEach(b => b.onclick = async () => {
+    if (!confirm("この販売商品を、まとめから外しますか？（受注のデータは変わりません）")) return;
+    const { error } = await sb.from("sales_aliases").delete().eq("alias_key", b.dataset.sunlink);
+    if (error) { alert("失敗しました：" + error.message); return; }
+    delete SA[b.dataset.sunlink]; buildProfit(); drawProfit(); closeModal();
+  });
+}
+
+// ---------- かんたん結び付け：請求書の商品 → Bカートの商品を選ぶだけ ----------
+const tokensAll = (s) => new Set(String(s ?? "").toUpperCase()
+  .replace(/([A-Z]+)(?=[0-9\u3040-\u30FF\u4E00-\u9FFF])|([0-9]+)(?=[A-Z\u3040-\u30FF\u4E00-\u9FFF])|([\u3040-\u30FF\u4E00-\u9FFF]+)(?=[A-Z0-9])/g, "$1$2$3 ")
+  .split(/[^A-Z0-9\u3040-\u30FF\u4E00-\u9FFF]+/)
+  .filter(t => t.length >= 2 && !/^(SKU|GTIN|ML|CC|PCS|EA|VIAL|VIALS|SYRINGE|BOX|単位|箱|本)$/.test(t) && !(/^\d+$/.test(t) && t.length < 3)));
+function bcartProducts() {
+  const m = new Map();
+  SALES.forEach(r => { const k = salesKey(r.product_code, r.product_name);
+    const g = m.get(k) || { key: k, code: r.product_code, name: r.product_name, unit: r.unit, qty: 0 }; g.qty += Number(r.qty) || 0; g.name = r.product_name; m.set(k, g); });
+  return [...m.values()].sort((a, b) => b.qty - a.qty).map(g => ({ ...g, label: `${g.name}${g.code ? " ［" + g.code + "］" : ""}` }));
+}
+// 確実な候補（2語以上一致）は緑、ブランド名だけ一致する候補は黄色（要確認）
+function suggestBcart(name, list) {
+  const t = tokensAll(name); let best = null, bs = 0, bestN = 0;
+  list.filter(b => !/キャンセル/.test(b.name)).forEach(b => { const u = tokensAll(b.name); let n = 0, longHit = false;
+    t.forEach(x => { if (u.has(x)) { n++; if (x.length >= 5 && !/^\d+$/.test(x)) longHit = true; } });
+    const sc = n >= 2 ? 1 + n / Math.min(t.size, u.size) : (longHit ? 0.5 : 0);
+    if (sc > bs) { bs = sc; best = b; bestN = n; } });
+  if (bs >= 1.6) return { b: best, sure: true };
+  if (bs > 0) return { b: best, sure: false };
+  return null;
+}
+function easyRows() {
+  const seen = new Map();
+  PR_LINES.forEach(l => { const k = aliasKey(l.supplier, l.name); const g = seen.get(k) || { key: k, supplier: l.supplier, name: l.name, last: l };
+    if (l.date >= g.last.date) g.last = l; seen.set(k, g); });
+  return [...seen.values()].sort((a, b) => b.last.date.localeCompare(a.last.date));
+}
+function linkedBcartFor(aliasK) {   // 請求書の商品が今つながっているBカート商品
+  const a = PA[aliasK]; if (!a) return null;
+  const sa = Object.values(SA).find(x => x.product_id === a.product_id);
+  return sa ? { key: sa.alias_key, units: Number(a.units) || 1 } : null;
+}
+function updateEasyCount() { const n = easyRows().filter(r => !linkedBcartFor(r.key)).length; $("#easyN").textContent = n; }
+$("#easyBtn").onclick = () => {
+  const list = bcartProducts(), byLabel = new Map(list.map(b => [b.label, b])), byKey = new Map(list.map(b => [b.key, b]));
+  const rows = easyRows();
+  $("#modalBox").innerHTML = `
+    <h3>仕入と販売を結び付ける</h3>
+    <div class="meta">左の「請求書の商品」が、Bカートのどの商品にあたるかを選ぶだけです。右の欄に商品名や商品管理番号を入れると候補が出ます（例：jalupro、SB006）。<br>
+      入数が違うときだけ「請求書1つ＝Bカート何個」を変えてください（例：請求書は1本単位・Bカートは5本入りの箱 → 0.2）。</div>
+    <div class="toolbar" style="margin:6px 0"><label class="sub" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="ezOnly" checked style="width:auto">まだ結び付けていないものだけ表示</label>
+      <span class="count">候補はあらかじめ入れてあります。緑＝ほぼ確実、黄色＝要確認。違っていたら選び直し、空欄にすると保存しません。</span></div>
+    <datalist id="bcartList">${list.map(b => `<option value="${esc(b.label)}">`).join("")}</datalist>
+    <div style="max-height:58vh;overflow:auto" id="ezList">${rows.map((r, i) => {
+      const cur = linkedBcartFor(r.key), sgr = cur ? { b: byKey.get(cur.key), sure: true } : suggestBcart(r.name, list), sg = sgr && sgr.b;
+      return `<div class="ez" data-i="${i}" data-linked="${cur ? 1 : 0}">
+        <div><b style="font-weight:500">${esc(r.name)}</b><div class="sub">${esc(r.supplier)}　${fmtPrice(r.last.price)} ${esc(r.last.currency)}（${esc(r.last.date)}）</div></div>
+        <div class="arrow">→</div>
+        <div><input class="ezIn ${sg ? (sgr.sure ? "ok" : "maybe") : ""}" list="bcartList" placeholder="Bカートの商品を選ぶ" value="${sg ? esc(sg.label) : ""}">
+          ${sg && !sgr.sure ? `<div class="sub" style="color:var(--warn)">ブランド名だけ一致した候補です。合っているか確認してください</div>` : ""}</div>
+        <div class="u">請求書1つ＝<input class="ezU" value="${cur ? cur.units : 1}">個</div></div>`; }).join("")}</div>
+    <div class="actions"><button class="btn" id="ezClose">閉じる</button><button class="btn primary" id="ezSave">保存</button></div>`;
+  $("#modal").classList.remove("hidden");
+  const applyFilter = () => $("#ezList").querySelectorAll(".ez").forEach(el => el.classList.toggle("hidden", $("#ezOnly").checked && el.dataset.linked === "1"));
+  $("#ezOnly").onchange = applyFilter; applyFilter();
+  $("#ezList").querySelectorAll(".ezIn").forEach(inp => inp.oninput = () => { inp.classList.remove("maybe"); inp.classList.toggle("ok", byLabel.has(inp.value)); });
+  $("#ezClose").onclick = closeModal;
+  $("#ezSave").onclick = async (e) => {
+    const btn = e.target; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>保存中…';
+    try {
+      let saved = 0, bad = 0;
+      for (const el of $("#ezList").querySelectorAll(".ez")) {
+        const r = rows[Number(el.dataset.i)], v = el.querySelector(".ezIn").value.trim();
+        if (!v) continue;
+        const b = byLabel.get(v); if (!b) { bad++; continue; }
+        const units = Number(String(el.querySelector(".ezU").value).replace(/,/g, "")) || 1;
+        const cur = linkedBcartFor(r.key);
+        if (cur && cur.key === b.key && cur.units === units) continue;
+        // Bカート商品に対応する「まとめた商品」を用意（なければ作る）
+        let pid = SA[b.key]?.product_id;
+        if (!pid) {
+          const { data, error } = await sb.from("price_products").insert({ name: b.name, compare_unit: b.unit || "個" }).select().single();
+          if (error) throw error; PP.push(data); pid = data.id;
+          const sa = { alias_key: b.key, product_code: b.code, product_name: b.name, product_id: pid, units: 1 };
+          const r2 = await sb.from("sales_aliases").upsert(sa, { onConflict: "alias_key" }); if (r2.error) throw r2.error; SA[b.key] = sa;
+        }
+        const pa = { alias_key: r.key, supplier: r.supplier, description: r.name, product_id: pid, units };
+        const r3 = await sb.from("price_aliases").upsert(pa, { onConflict: "alias_key" }); if (r3.error) throw r3.error; PA[r.key] = pa;
+        saved++;
+      }
+      buildCompare(); drawCompare(); buildProfit(); drawProfit(); updateEasyCount(); closeModal();
+      if (bad) alert(`${bad}件は、Bカートの商品名が一覧と一致しなかったため保存していません。候補の中から選んでください。`);
+    } catch (err) { alert("保存に失敗しました：" + (err.message || err)); btn.disabled = false; btn.textContent = "保存"; }
+  };
+};
+
+$("#sLinkBtn").onclick = () => {
+  const opts = PP.slice().sort((a, b) => a.name.localeCompare(b.name, "ja")).map(p => `<option value="${p.id}">${esc(p.name)}（1${esc(p.compare_unit)}）</option>`).join("");
+  $("#modalBox").innerHTML = `
+    <h3>まとめていない販売商品（${S_UNLINKED.length}件・よく売れている順）</h3>
+    <div class="meta">Bカートの販売商品を、「仕入価格」タブでまとめた商品に結び付けます。まとめた商品がまだない場合は、先に仕入価格タブで作ってください。<br>
+      「販売の1単位＝」には、販売の数量1つが比べる単位いくつにあたるかを入れます（例：1セット10箱で、比べる単位が「箱」なら 10）。</div>
+    ${PP.length ? "" : `<div class="alert warn">まとめた商品がまだありません。「仕入価格」タブの「まとめていない商品名」から先に作ってください。</div>`}
+    <div style="max-height:60vh;overflow:auto">${S_UNLINKED.map((u, i) => `<div class="cand" data-i="${i}">
+      <div><b style="font-weight:500">${esc(u.name)}</b><div class="sub">${esc(u.code ?? "")}　/　¥${Number(u.price).toLocaleString("ja-JP")}／${esc(u.unit ?? "")}（販売数 ${fmtQty(u.qty)}・最終 ${esc(u.last)}）</div></div>
+      <div><select class="slSel"><option value="">（まだ結び付けない）</option>${opts}</select></div>
+      <div><input class="slUnits" value="1" style="text-align:right" title="販売の1単位＝比べる単位いくつ"></div>
+      <div class="sub sg"></div></div>`).join("") || `<div class="empty">すべて結び付け済みです</div>`}</div>
+    <div class="actions"><button class="btn" id="slClose">閉じる</button><button class="btn primary" id="slSave">選んだものを保存</button></div>`;
+  $("#modal").classList.remove("hidden");
+  $("#modalBox").querySelectorAll(".cand").forEach(row => { const sg = suggest(S_UNLINKED[Number(row.dataset.i)].name);
+    if (sg) { row.querySelector(".slSel").value = sg.id; row.querySelector(".sg").textContent = "候補あり"; } });
+  $("#slClose").onclick = closeModal;
+  $("#slSave").onclick = async (e) => {
+    const btn = e.target; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>保存中…';
+    const recs = [...$("#modalBox").querySelectorAll(".cand")].map(row => { const u = S_UNLINKED[Number(row.dataset.i)], v = row.querySelector(".slSel").value;
+      return v ? { alias_key: u.key, product_code: u.code, product_name: u.name, product_id: v, units: Number(String(row.querySelector(".slUnits").value).replace(/,/g, "")) || 1 } : null; }).filter(Boolean);
+    if (recs.length) {
+      const { error } = await sb.from("sales_aliases").upsert(recs, { onConflict: "alias_key" });
+      if (error) { alert("保存に失敗しました：" + error.message); btn.disabled = false; btn.textContent = "選んだものを保存"; return; }
+      recs.forEach(r => SA[r.alias_key] = r);
+    }
+    buildProfit(); drawProfit(); closeModal();
+  };
+};
+
+$("#pfCsv").onclick = () => {
+  const head = ["商品", "比べる単位", "仕入単価(円)", "平均販売単価(円)", "最安販売単価(円)", "1単位の粗利(円)", "粗利率(%)", "販売数", "粗利額(円)", "仕入割れの注文数"];
+  const lines = [head, ...PROFIT.map(x => [x.c.p.name, x.c.p.compare_unit, x.cost == null ? "" : Math.round(x.cost), x.avg == null ? "" : Math.round(x.avg),
+    x.min == null ? "" : Math.round(x.min), x.gp == null ? "" : Math.round(x.gp), x.rate == null ? "" : x.rate.toFixed(1), x.n, x.amount == null ? "" : Math.round(x.amount), x.lossN])];
+  const csv = lines.map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv" }));
+  a.download = `商品別利益_${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+};
+
+$("#prCsv").onclick = () => {
+  const head = ["商品名", "請求日", "取引先", "請求書番号", "数量", "単位", "単価", "通貨", "円換算", "前回単価", "前回比(%)"];
+  const lines = [head];
+  PR_PRODUCTS.slice().sort((a, b) => a.name.localeCompare(b.name, "ja")).forEach(p => p.lines.forEach(l => lines.push([
+    p.name, l.date, l.supplier, l.invoice_no, l.qty, l.unit, l.price, l.currency, l.yen == null ? "" : Math.round(l.yen),
+    l.prev ? l.prev.price : "", l.change == null ? "" : l.change.toFixed(1)])));
+  const csv = lines.map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv" }));
+  a.download = `仕入価格_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+};
+$("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+
+// ---------- CSV出力（明細1行＝1行） ----------
+$("#csvBtn").onclick = () => {
+  const head = ["請求日","取引先","請求書番号","AWB番号","通貨","合計金額","取引条件","送り先","行","商品名","HSコード","数量","単位","単価","小計","原産","状態","メモ"];
+  const lines = [head];
+  filtered().forEach(r => (r.invoice_items.length ? r.invoice_items : [{}]).forEach(i => lines.push([
+    r.invoice_date, r.supplier, r.invoice_no, r.awb_no, r.currency, r.total_amount, r.incoterm, r.ship_to,
+    i.line_no, i.description, i.hs_code, i.quantity, i.unit, i.unit_price, i.subtotal, i.origin, r.status, r.memo])));
+  const csv = lines.map(l => l.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["﻿" + csv], { type: "text/csv" }));
+  a.download = `INVOICE台帳_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+};
 
 boot();
 </script>
